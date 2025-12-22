@@ -1,75 +1,19 @@
-import { useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Switch, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { Colors, Fonts } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
-
-const campusCatalog = [
-  {
-    id: 'utokyo',
-    name: '東京大学',
-    city: '東京',
-    tags: ['国立', '関東'],
-    programs: ['情報理工', '工学部', '経済学部'],
-  },
-  {
-    id: 'kyodai',
-    name: '京都大学',
-    city: '京都',
-    tags: ['国立', '関西'],
-    programs: ['総合人間', '工学部', '農学部'],
-  },
-  {
-    id: 'waseda',
-    name: '早稲田大学',
-    city: '東京',
-    tags: ['私立', '関東'],
-    programs: ['基幹理工', '政治経済', '商学部'],
-  },
-  {
-    id: 'keio',
-    name: '慶應義塾大学',
-    city: '東京',
-    tags: ['私立', '関東'],
-    programs: ['理工学部', '総合政策', '環境情報'],
-  },
-  {
-    id: 'osaka',
-    name: '大阪公立大学',
-    city: '大阪',
-    tags: ['公立', '関西'],
-    programs: ['経済学部', '医学部', '都市科学'],
-  },
-];
-
-const intentOptions = [
-  { key: 'same', label: '同じ大学でマッチ', description: '学内コミュニティを固めたい' },
-  { key: 'nearby', label: '近隣大学と繋がる', description: '同じエリアでイベントをしたい' },
-  { key: 'open', label: '全国どこでも', description: '進学・交換留学の相談をしたい' },
-];
-
-const weightPresets = [
-  {
-    key: 'major',
-    title: '専攻マッチ重視',
-    weights: { major: 0.5, campus: 0.3, activity: 0.2 },
-    note: '研究室・専門領域の近さを優先',
-  },
-  {
-    key: 'campus',
-    title: 'キャンパス圏重視',
-    weights: { major: 0.25, campus: 0.55, activity: 0.2 },
-    note: '移動距離の短さと生活圏の相性を重視',
-  },
-  {
-    key: 'activity',
-    title: 'サークル/活動重視',
-    weights: { major: 0.2, campus: 0.25, activity: 0.55 },
-    note: '課外活動・イベント参加歴でマッチ',
-  },
-];
+import {
+  CampusRecord,
+  IntentOption,
+  WeightPreset,
+  fetchCampusCatalog,
+  fetchIntentOptions,
+  fetchVerificationFlags,
+  fetchWeightPresets,
+} from '@/src/services/mockApi';
 
 const matchIdeas = [
   {
@@ -92,24 +36,73 @@ const matchIdeas = [
   },
 ];
 
-const verificationOptions = [
-  '学籍番号 or ポータルで本人確認',
-  '大学メールドメインで認証',
-  'サークル・学部の在籍証明をアップロード',
-];
-
 export default function HomeScreen() {
   const colorScheme = useColorScheme();
-  const [selectedTargets, setSelectedTargets] = useState<string[]>(['utokyo', 'keio']);
-  const [intent, setIntent] = useState(intentOptions[1].key);
+  const [campusCatalog, setCampusCatalog] = useState<CampusRecord[]>([]);
+  const [intentOptions, setIntentOptions] = useState<IntentOption[]>([]);
+  const [weightPresets, setWeightPresets] = useState<WeightPreset[]>([]);
+  const [verificationOptions, setVerificationOptions] = useState<string[]>([]);
+  const [selectedTargets, setSelectedTargets] = useState<string[]>([]);
+  const [intent, setIntent] = useState('');
   const [isVerifiedOnly, setIsVerifiedOnly] = useState(true);
   const [enableSmartRotation, setEnableSmartRotation] = useState(true);
-  const [presetKey, setPresetKey] = useState(weightPresets[0].key);
+  const [presetKey, setPresetKey] = useState('');
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const isMountedRef = useRef(true);
 
-  const activePreset = useMemo(
-    () => weightPresets.find((preset) => preset.key === presetKey) ?? weightPresets[0],
-    [presetKey]
-  );
+  const activePreset = useMemo(() => {
+    return (
+      weightPresets.find((preset) => preset.id === presetKey) || weightPresets[0] || {
+        id: 'default',
+        title: '重み付け未設定',
+        note: '設定データの取得をお待ちください',
+        isActive: false,
+        weights: { major: 0, campus: 0, activity: 0 },
+      }
+    );
+  }, [presetKey, weightPresets]);
+
+  const loadData = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      const [campuses, intents, presets, verificationFlags] = await Promise.all([
+        fetchCampusCatalog(),
+        fetchIntentOptions(),
+        fetchWeightPresets(),
+        fetchVerificationFlags(),
+      ]);
+
+      if (!isMountedRef.current) return;
+
+      setCampusCatalog(campuses);
+      setIntentOptions(intents);
+      setWeightPresets(presets);
+      setVerificationOptions(verificationFlags.map((flag) => flag.label));
+      setSelectedTargets((prev) => (prev.length > 0 ? prev : campuses.slice(0, 2).map((campus) => campus.id)));
+      setIntent((prev) => (prev ? prev : intents[0]?.id ?? ''));
+      setPresetKey((prev) => (prev ? prev : presets[0]?.id ?? ''));
+      setIsVerifiedOnly(verificationFlags.some((flag) => flag.required));
+      setError(null);
+    } catch (error) {
+      if (isMountedRef.current) {
+        console.error('設定データ取得時にエラーが発生しました', error);
+        setError('設定データの取得に失敗しました。再読み込みしてください。');
+      }
+    } finally {
+      if (isMountedRef.current) {
+        setIsLoading(false);
+      }
+    }
+  }, []);
+
+  useEffect(() => {
+    loadData();
+
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, [loadData]);
 
   const toggleTarget = (id: string) => {
     setSelectedTargets((prev) =>
@@ -119,10 +112,36 @@ export default function HomeScreen() {
 
   const theme = Colors[colorScheme ?? 'light'];
 
+  if (isLoading) {
+    return (
+      <ScrollView contentContainerStyle={styles.container}>
+        <ThemedView style={[styles.placeholderBox, { borderColor: theme.icon }]}>
+          <ThemedText>設定データを読み込んでいます...</ThemedText>
+        </ThemedView>
+      </ScrollView>
+    );
+  }
+
   return (
     <ScrollView contentContainerStyle={styles.container}>
-      <ThemedView style={[styles.hero, { borderColor: theme.icon }]}> 
-        <View style={styles.heroHeader}> 
+      {error ? (
+        <ThemedView
+          style={[
+            styles.errorBox,
+            { borderColor: theme.tint, backgroundColor: `${theme.tint}10` },
+          ]}>
+          <ThemedText type="subtitle" style={styles.errorTitle}>
+            データ取得エラー
+          </ThemedText>
+          <ThemedText>{error}</ThemedText>
+          <Pressable onPress={loadData} style={[styles.retryButton, { borderColor: theme.tint }]}>
+            <ThemedText style={[styles.retryLabel, { color: theme.tint }]}>再読み込み</ThemedText>
+          </Pressable>
+        </ThemedView>
+      ) : null}
+
+      <ThemedView style={[styles.hero, { borderColor: theme.icon }]}>
+        <View style={styles.heroHeader}>
           <ThemedText type="title" style={styles.heroTitle}>
             学生認証ベースの安心マッチング
           </ThemedText>
@@ -179,13 +198,13 @@ export default function HomeScreen() {
         <View style={styles.intentRow}>
           {intentOptions.map((option) => (
             <Pressable
-              key={option.key}
-              onPress={() => setIntent(option.key)}
+              key={option.id}
+              onPress={() => setIntent(option.id)}
               style={({ pressed }) => [
                 styles.intentCard,
                 {
-                  borderColor: intent === option.key ? theme.tint : theme.icon,
-                  backgroundColor: intent === option.key ? `${theme.tint}12` : 'transparent',
+                  borderColor: intent === option.id ? theme.tint : theme.icon,
+                  backgroundColor: intent === option.id ? `${theme.tint}12` : 'transparent',
                   opacity: pressed ? 0.9 : 1,
                 },
               ]}>
@@ -213,13 +232,13 @@ export default function HomeScreen() {
         <View style={styles.weightRow}>
           {weightPresets.map((preset) => (
             <Pressable
-              key={preset.key}
-              onPress={() => setPresetKey(preset.key)}
+              key={preset.id}
+              onPress={() => setPresetKey(preset.id)}
               style={({ pressed }) => [
                 styles.weightCard,
                 {
-                  borderColor: presetKey === preset.key ? theme.tint : theme.icon,
-                  backgroundColor: presetKey === preset.key ? `${theme.tint}10` : 'transparent',
+                  borderColor: presetKey === preset.id ? theme.tint : theme.icon,
+                  backgroundColor: presetKey === preset.id ? `${theme.tint}10` : 'transparent',
                   opacity: pressed ? 0.9 : 1,
                 },
               ]}>
@@ -240,7 +259,7 @@ export default function HomeScreen() {
             現在のロジック概要
           </ThemedText>
           <ThemedText>
-            ・ターゲット大学: {selectedTargets.length}校 / 意図: {intentOptions.find((opt) => opt.key === intent)?.label}
+            ・ターゲット大学: {selectedTargets.length}校 / 意図: {intentOptions.find((opt) => opt.id === intent)?.label}
           </ThemedText>
           <ThemedText>
             ・本人確認: {isVerifiedOnly ? '必須 (大学メール + 学籍証明)' : '任意 (手動チェック)'}
@@ -271,7 +290,7 @@ export default function HomeScreen() {
               <ThemedText style={styles.matchSnippet}>{idea.snippet}</ThemedText>
               <View style={styles.matchMetaRow}>
                 <Badge label="本人確認済" themeColor={theme.icon} subtle />
-                <Badge label={intentOptions.find((opt) => opt.key === intent)?.label ?? ''} themeColor={theme.icon} subtle />
+                <Badge label={intentOptions.find((opt) => opt.id === intent)?.label ?? ''} themeColor={theme.icon} subtle />
                 <Badge label={`対象 ${selectedTargets.length}校`} themeColor={theme.icon} subtle />
               </View>
             </ThemedView>
@@ -349,6 +368,31 @@ const styles = StyleSheet.create({
   container: {
     padding: 16,
     gap: 18,
+  },
+  placeholderBox: {
+    padding: 16,
+    borderRadius: 12,
+    borderWidth: 1,
+    alignItems: 'center',
+  },
+  errorBox: {
+    padding: 14,
+    borderRadius: 12,
+    borderWidth: 1,
+    gap: 8,
+  },
+  errorTitle: {
+    fontFamily: Fonts.rounded,
+  },
+  retryButton: {
+    alignSelf: 'flex-start',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderWidth: 1,
+    borderRadius: 10,
+  },
+  retryLabel: {
+    fontWeight: '600',
   },
   hero: {
     padding: 18,
