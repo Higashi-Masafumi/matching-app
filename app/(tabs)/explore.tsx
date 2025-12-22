@@ -1,9 +1,27 @@
-import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { useEffect, useMemo, useState } from 'react';
+import {
+  ActivityIndicator,
+  Alert,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  ToastAndroid,
+  Platform,
+  View,
+} from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { Colors, Fonts } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import {
+  AdminControl,
+  AdminState,
+  getAdminControls,
+  setWeightPreset,
+  toggleVerificationPolicy,
+  weightPresetCatalog,
+} from '@/services/mock-admin-service';
 
 const launchChecklist = [
   '大学メール/学生証での二段階認証フロー',
@@ -12,29 +30,6 @@ const launchChecklist = [
   '通報・ブロックと不正検知ワードの管理画面',
   'アルゴリズム重みプリセット（専攻・距離・活動）',
   'イベントや時期に応じて優先度を切り替える運営ボタン',
-];
-
-const adminControls = [
-  {
-    title: '大学指定マッチ',
-    description: '指定した大学の学生のみ相互推薦。学内コミュニティを閉じて安全に運用。',
-  },
-  {
-    title: '距離・エリアフィルター',
-    description: 'キャンパス間距離を計算し、通学圏内の大学だけを表示。',
-  },
-  {
-    title: '本人確認ステータス固定',
-    description: '未確認アカウントを探索対象から外し、学籍証明アップロードを促す。',
-  },
-  {
-    title: 'スロットリング',
-    description: '人気大学へのアクセス集中を抑え、各大学の露出を均等化。',
-  },
-  {
-    title: 'イベント用枠制御',
-    description: '大学祭やオフラインイベントの期間だけマッチング優先度を変更。',
-  },
 ];
 
 const roadmapItems = [
@@ -64,9 +59,85 @@ const roadmapItems = [
   },
 ];
 
+function showToast(message: string) {
+  if (Platform.OS === 'android') {
+    ToastAndroid.show(message, ToastAndroid.SHORT);
+    return;
+  }
+
+  Alert.alert('Mock admin', message);
+}
+
 export default function ExploreScreen() {
   const colorScheme = useColorScheme();
+  const [adminState, setAdminState] = useState<AdminState | null>(null);
+  const [isLoadingAdmin, setIsLoadingAdmin] = useState(true);
+  const [pendingAction, setPendingAction] = useState<string | null>(null);
   const theme = Colors[colorScheme ?? 'light'];
+
+  const refreshAdminState = async () => {
+    setIsLoadingAdmin(true);
+    try {
+      const data = await getAdminControls();
+      setAdminState(data);
+    } catch {
+      showToast('管理モックの読み込みに失敗しました。もう一度お試しください。');
+    } finally {
+      setIsLoadingAdmin(false);
+    }
+  };
+
+  useEffect(() => {
+    refreshAdminState();
+  }, []);
+
+  const handlePresetChange = async (presetKey: AdminState['weightPreset']) => {
+    if (!adminState) return;
+
+    const previous = adminState;
+    setPendingAction('preset');
+    setAdminState({ ...adminState, weightPreset: presetKey });
+
+    try {
+      const nextState = await setWeightPreset(presetKey);
+      setAdminState(nextState);
+      showToast('重みプリセットを更新しました (mock)');
+    } catch {
+      setAdminState(previous);
+      showToast('プリセット更新に失敗しました (mock)');
+    } finally {
+      setPendingAction(null);
+    }
+  };
+
+  const handleVerificationToggle = async () => {
+    if (!adminState) return;
+
+    const previous = adminState;
+    const optimistic: AdminState = {
+      ...adminState,
+      verificationPolicy: adminState.verificationPolicy === 'strict' ? 'relaxed' : 'strict',
+    };
+
+    setPendingAction('verification');
+    setAdminState(optimistic);
+
+    try {
+      const nextState = await toggleVerificationPolicy();
+      setAdminState(nextState);
+      showToast('本人確認ポリシーを更新しました (mock)');
+    } catch {
+      setAdminState(previous);
+      showToast('本人確認ポリシーの更新に失敗しました (mock)');
+    } finally {
+      setPendingAction(null);
+    }
+  };
+
+  const activePreset = useMemo(
+    () => weightPresetCatalog.find((preset) => preset.key === adminState?.weightPreset),
+    [adminState?.weightPreset]
+  );
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
@@ -92,16 +163,17 @@ export default function ExploreScreen() {
 
       <Section title="運営が操作できるレバー">
         <ThemedText style={styles.subtitle}>マッチング結果を意図に合わせるための管理UI案です。</ThemedText>
-        <View style={styles.cardGrid}>
-          {adminControls.map((control) => (
-            <ThemedView key={control.title} style={[styles.card, { borderColor: theme.icon }]}> 
-              <ThemedText type="subtitle" style={styles.cardTitle}>
-                {control.title}
-              </ThemedText>
-              <ThemedText style={styles.cardBody}>{control.description}</ThemedText>
-            </ThemedView>
-          ))}
-        </View>
+        <AdminMockPanel
+          adminState={adminState}
+          isLoading={isLoadingAdmin}
+          pendingAction={pendingAction}
+          onPresetChange={handlePresetChange}
+          onToggleVerification={handleVerificationToggle}
+          onRefetch={refreshAdminState}
+          activePreset={activePreset?.title}
+          themeTint={theme.tint}
+          themeIcon={theme.icon}
+        />
       </Section>
 
       <Section title="運用フロー (例)">
@@ -164,6 +236,170 @@ function Section({ title, children }: { title: string; children: React.ReactNode
         {title}
       </ThemedText>
       {children}
+    </ThemedView>
+  );
+}
+
+type AdminMockPanelProps = {
+  adminState: AdminState | null;
+  isLoading: boolean;
+  pendingAction: string | null;
+  onPresetChange: (presetKey: AdminState['weightPreset']) => void;
+  onToggleVerification: () => void;
+  onRefetch: () => void;
+  activePreset?: string;
+  themeTint: string;
+  themeIcon: string;
+};
+
+function AdminMockPanel({
+  adminState,
+  isLoading,
+  pendingAction,
+  onPresetChange,
+  onToggleVerification,
+  onRefetch,
+  activePreset,
+  themeTint,
+  themeIcon,
+}: AdminMockPanelProps) {
+  if (isLoading) {
+    return (
+      <ThemedView style={[styles.card, { borderColor: themeIcon, alignItems: 'center' }]}>
+        <ActivityIndicator />
+        <ThemedText style={styles.cardBody}>管理モックを読み込んでいます...</ThemedText>
+      </ThemedView>
+    );
+  }
+
+  if (!adminState) {
+    return (
+      <ThemedView style={[styles.card, { borderColor: themeIcon, gap: 10 }]}>
+        <ThemedText type="subtitle" style={styles.cardTitle}>
+          モック取得に失敗しました
+        </ThemedText>
+        <ThemedText style={styles.cardBody}>
+          ネットワークエラーを模した失敗です。再度読み込みをお試しください。
+        </ThemedText>
+        <Pressable
+          onPress={onRefetch}
+          style={({ pressed }) => [
+            styles.actionButton,
+            { backgroundColor: themeTint, opacity: pressed ? 0.8 : 1 },
+          ]}>
+          <ThemedText style={styles.actionButtonText}>状態を再取得</ThemedText>
+        </Pressable>
+      </ThemedView>
+    );
+  }
+
+  return (
+    <View style={styles.cardGrid}>
+      <AdminActionCard
+        title="アルゴリズム重みプリセット"
+        description={activePreset ? `現在: ${activePreset}` : 'プリセットを選択'}
+        actions={weightPresetCatalog.map((preset) => ({
+          key: preset.key,
+          label: preset.title,
+          active: adminState.weightPreset === preset.key,
+          onPress: () => onPresetChange(preset.key),
+        }))}
+        pending={pendingAction === 'preset'}
+        themeTint={themeTint}
+        themeIcon={themeIcon}
+      />
+      <AdminActionCard
+        title="本人確認ポリシー"
+        description={
+          adminState.verificationPolicy === 'strict'
+            ? '大学メール + 学籍証明を必須'
+            : '大学メールを基準に柔軟参加'
+        }
+        actions={[
+          {
+            key: 'verification',
+            label: adminState.verificationPolicy === 'strict' ? '柔軟モードにする' : '厳格モードにする',
+            onPress: onToggleVerification,
+          },
+        ]}
+        pending={pendingAction === 'verification'}
+        themeTint={themeTint}
+        themeIcon={themeIcon}
+      />
+
+      {adminState.controls.map((control) => (
+        <AdminStatusCard key={control.key} control={control} themeIcon={themeIcon} />
+      ))}
+    </View>
+  );
+}
+
+type AdminActionCardProps = {
+  title: string;
+  description: string;
+  actions: { key: string; label: string; onPress: () => void; active?: boolean }[];
+  pending?: boolean;
+  themeTint: string;
+  themeIcon: string;
+};
+
+function AdminActionCard({ title, description, actions, pending, themeTint, themeIcon }: AdminActionCardProps) {
+  return (
+    <ThemedView style={[styles.card, { borderColor: themeIcon, gap: 10 }]}>
+      <ThemedText type="subtitle" style={styles.cardTitle}>
+        {title}
+      </ThemedText>
+      <ThemedText style={styles.cardBody}>{description}</ThemedText>
+      <View style={styles.actionRow}>
+        {actions.map((action) => (
+          <Pressable
+            key={action.key}
+            onPress={action.onPress}
+            disabled={pending}
+            style={({ pressed }) => [
+              styles.actionButton,
+              {
+                backgroundColor: action.active ? themeTint : `${themeIcon}22`,
+                opacity: pressed || pending ? 0.7 : 1,
+              },
+            ]}>
+            <ThemedText
+              style={[
+                styles.actionButtonText,
+                { color: action.active ? '#fff' : themeIcon },
+              ]}>
+              {pending ? '更新中...' : action.label}
+            </ThemedText>
+          </Pressable>
+        ))}
+      </View>
+    </ThemedView>
+  );
+}
+
+function AdminStatusCard({ control, themeIcon }: { control: AdminControl; themeIcon: string }) {
+  return (
+    <ThemedView style={[styles.card, { borderColor: themeIcon, gap: 8, flexBasis: '48%' }]}>
+      <ThemedText type="subtitle" style={styles.cardTitle}>
+        {control.title}
+      </ThemedText>
+      <ThemedText style={styles.cardBody}>{control.description}</ThemedText>
+      <View style={styles.statusRow}>
+        <View
+          style={[
+            styles.statusPill,
+            { backgroundColor: control.active ? `${themeIcon}18` : `${themeIcon}12` },
+          ]}>
+          <View
+            style={[
+              styles.statusDot,
+              { backgroundColor: control.active ? themeIcon : `${themeIcon}55` },
+            ]}
+          />
+          <ThemedText style={styles.statusText}>{control.active ? '有効' : '停止中'}</ThemedText>
+        </View>
+        <ThemedText style={styles.statusMeta}>更新: {control.lastUpdated}</ThemedText>
+      </View>
     </ThemedView>
   );
 }
@@ -252,6 +488,45 @@ const styles = StyleSheet.create({
   cardBody: {
     lineHeight: 18,
     fontSize: 13,
+  },
+  actionRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  actionButton: {
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    borderRadius: 10,
+  },
+  actionButtonText: {
+    fontWeight: '700',
+    fontSize: 13,
+  },
+  statusRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  statusPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 10,
+  },
+  statusDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 999,
+  },
+  statusText: {
+    fontSize: 13,
+  },
+  statusMeta: {
+    fontSize: 12,
+    opacity: 0.8,
   },
   listRow: {
     flexDirection: 'row',
@@ -349,4 +624,3 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
 });
-
