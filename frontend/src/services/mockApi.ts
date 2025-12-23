@@ -1,3 +1,5 @@
+import { apiClient } from './api-client';
+
 export type CampusRecord = {
   id: string;
   name: string;
@@ -34,41 +36,31 @@ export type VerificationFlag = {
   required: boolean;
 };
 
-type CatalogConfigurationResponse = {
-  intents: IntentOption[];
-  weightPresets: WeightPreset[];
-  verificationFlags: VerificationFlag[];
-};
+let cachedConfiguration: { intents: IntentOption[]; weightPresets: WeightPreset[]; verificationFlags: VerificationFlag[] } | null = null;
 
-type UniversityResponse = {
-  total: number;
-  results: (CampusRecord & { country: string; website?: string })[];
-};
-
-const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL ?? 'http://localhost:3000';
-
-const apiGet = async <T,>(path: string): Promise<T> => {
-  const response = await fetch(`${API_BASE_URL}${path}`);
-
-  if (!response.ok) {
-    const message = await response.text();
-    throw new Error(`API request failed (${response.status}): ${message}`);
+const unwrapResponse = <T,>(result: { data?: T; error?: { message?: string; data?: unknown } }) => {
+  if (result.error || !result.data) {
+    const message = (result.error as { data?: { message?: string }; message?: string })?.data?.message;
+    throw new Error(message ?? result.error?.message ?? 'データの取得に失敗しました。');
   }
 
-  return (await response.json()) as T;
+  return result.data;
 };
-
-let cachedConfiguration: CatalogConfigurationResponse | null = null;
 
 const fetchConfiguration = async () => {
   if (cachedConfiguration) return cachedConfiguration;
 
-  cachedConfiguration = await apiGet<CatalogConfigurationResponse>('/catalog/configuration');
+  const response = await apiClient.GET('/catalog/configuration');
+  const data = unwrapResponse(response);
+
+  cachedConfiguration = data;
   return cachedConfiguration;
 };
 
 export const fetchCampusCatalog = async () => {
-  const data = await apiGet<UniversityResponse>('/catalog/universities');
+  const response = await apiClient.GET('/catalog/universities');
+  const data = unwrapResponse(response);
+
   return data.results.map(({ country: _country, website: _website, ...rest }) => rest);
 };
 
