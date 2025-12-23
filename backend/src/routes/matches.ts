@@ -61,7 +61,7 @@ export const registerMatchRoutes = (app: OpenAPIHono, deps: MatchDeps) => {
     request: {
       query: MatchQuerySchema,
     },
-    security: [{ UniversityEmailOtp: [] }],
+    security: [{ Auth0AccessToken: [] }],
     responses: {
       200: {
         description: 'Candidate matches returned successfully',
@@ -71,9 +71,7 @@ export const registerMatchRoutes = (app: OpenAPIHono, deps: MatchDeps) => {
           },
         },
       },
-      401: {
-        description: 'Missing or invalid email OTP authentication',
-      },
+      401: { description: 'Missing or invalid Auth0 authentication' },
     },
   });
 
