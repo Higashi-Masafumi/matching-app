@@ -1,3 +1,4 @@
+import { useRouter } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Switch, View } from 'react-native';
 
@@ -38,6 +39,7 @@ const matchIdeas = [
 
 export default function HomeScreen() {
   const colorScheme = useColorScheme();
+  const router = useRouter();
   const [campusCatalog, setCampusCatalog] = useState<CampusRecord[]>([]);
   const [intentOptions, setIntentOptions] = useState<IntentOption[]>([]);
   const [weightPresets, setWeightPresets] = useState<WeightPreset[]>([]);
@@ -274,6 +276,55 @@ export default function HomeScreen() {
         </ThemedView>
       </Section>
 
+      <Section title="次のステップ">
+        <ThemedText style={styles.sectionSubtitle}>
+          実際の操作フローに沿って、新しい画面へ遷移できます。本人確認やマッチ結果の確認、運営向け重み設定を試してみてください。
+        </ThemedText>
+        <View style={styles.actionGrid}>
+          <Pressable
+            onPress={() => router.push('/matches')}
+            style={({ pressed }) => [
+              styles.actionCard,
+              { backgroundColor: `${theme.tint}12`, borderColor: theme.tint, opacity: pressed ? 0.85 : 1 },
+            ]}>
+            <ThemedText type="subtitle" style={styles.cardTitle}>
+              マッチ結果を確認
+            </ThemedText>
+            <ThemedText style={styles.actionBody}>
+              条件に基づくサンプルマッチカードを一覧で確認し、本人確認済みのペアリングをチェックします。
+            </ThemedText>
+          </Pressable>
+
+          <Pressable
+            onPress={() => router.push('/verify/email-otp')}
+            style={({ pressed }) => [
+              styles.actionCard,
+              { backgroundColor: `${theme.icon}10`, borderColor: theme.icon, opacity: pressed ? 0.85 : 1 },
+            ]}>
+            <ThemedText type="subtitle" style={styles.cardTitle}>
+              大学メールを認証
+            </ThemedText>
+            <ThemedText style={styles.actionBody}>
+              学内メールへ6桁コードを送信し、OTPで学生本人かを確かめるフローをデモします。
+            </ThemedText>
+          </Pressable>
+
+          <Pressable
+            onPress={() => router.push('/admin/weights')}
+            style={({ pressed }) => [
+              styles.actionCard,
+              { backgroundColor: 'transparent', borderColor: `${theme.icon}60`, opacity: pressed ? 0.85 : 1 },
+            ]}>
+            <ThemedText type="subtitle" style={styles.cardTitle}>
+              重み付けプリセットを調整
+            </ThemedText>
+            <ThemedText style={styles.actionBody}>
+              季節やイベントに合わせてプリセットを切り替え、本人確認ポリシーの厳格さも操作できます。
+            </ThemedText>
+          </Pressable>
+        </View>
+      </Section>
+
       <Section title="サンプルマッチングカード">
         <ThemedText style={styles.sectionSubtitle}>
           上記の設定で生成されるイメージ。学生は大学・専攻・活動タグを確認しながらマッチします。
@@ -420,6 +471,18 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     borderWidth: 1,
     gap: 10,
+  },
+  actionGrid: {
+    gap: 12,
+  },
+  actionCard: {
+    padding: 14,
+    borderWidth: 1,
+    borderRadius: 12,
+    gap: 8,
+  },
+  actionBody: {
+    lineHeight: 18,
   },
   sectionTitle: {
     fontFamily: Fonts.rounded,
