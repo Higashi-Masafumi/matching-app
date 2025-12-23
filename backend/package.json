@@ -7,7 +7,8 @@
   "scripts": {
     "dev": "tsx watch src/server.ts",
     "build": "tsc -p .",
-    "start": "node dist/server.js"
+    "start": "node dist/server.js",
+    "generate:openapi": "tsx src/scripts/generate-openapi.ts"
   },
   "dependencies": {
     "@hono/node-server": "^1.13.0",
@@ -15,7 +16,10 @@
   },
   "devDependencies": {
     "@types/node": "^22.9.4",
+    "@asteasolutions/zod-to-openapi": "^7.4.0",
     "tsx": "^4.19.2",
-    "typescript": "^5.6.3"
+    "typescript": "^5.6.3",
+    "yaml": "^2.6.0",
+    "zod": "^3.23.8"
   }
 }
