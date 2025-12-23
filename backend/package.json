@@ -1,0 +1,21 @@
+{
+  "name": "matching-app-backend",
+  "version": "0.1.0",
+  "description": "Hono API server for the matching app",
+  "private": true,
+  "type": "commonjs",
+  "scripts": {
+    "dev": "tsx watch src/server.ts",
+    "build": "tsc -p .",
+    "start": "node dist/server.js"
+  },
+  "dependencies": {
+    "@hono/node-server": "^1.13.0",
+    "hono": "^4.6.12"
+  },
+  "devDependencies": {
+    "@types/node": "^22.9.4",
+    "tsx": "^4.19.2",
+    "typescript": "^5.6.3"
+  }
+}
