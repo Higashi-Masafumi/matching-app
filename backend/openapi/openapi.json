@@ -7,7 +7,7 @@
   },
   "servers": [
     {
-      "url": "https://api.example.com"
+      "url": "http://localhost:3000"
     }
   ],
   "components": {
@@ -25,10 +25,31 @@
             "minLength": 1,
             "example": "Example University"
           },
-          "location": {
+          "city": {
             "type": "string",
             "minLength": 1,
-            "example": "Tokyo, JP"
+            "example": "Tokyo"
+          },
+          "region": {
+            "type": "string",
+            "minLength": 1,
+            "example": "関東"
+          },
+          "country": {
+            "type": "string",
+            "minLength": 1,
+            "example": "JP"
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            },
+            "example": [
+              "国立",
+              "総合"
+            ]
           },
           "programs": {
             "type": "array",
@@ -42,6 +63,14 @@
               "Economics"
             ]
           },
+          "verificationLevel": {
+            "type": "string",
+            "enum": [
+              "basic",
+              "strict"
+            ],
+            "example": "strict"
+          },
           "website": {
             "type": "string",
             "format": "uri",
@@ -51,8 +80,12 @@
         "required": [
           "id",
           "name",
-          "location",
-          "programs"
+          "city",
+          "region",
+          "country",
+          "tags",
+          "programs",
+          "verificationLevel"
         ]
       },
       "UniversityCatalogResponse": {
@@ -341,6 +374,143 @@
         }
       }
     },
+    "/catalog/configuration": {
+      "get": {
+        "description": "UI metadata for catalog filters and weighting presets.",
+        "summary": "Catalog configuration",
+        "tags": [
+          "Catalog"
+        ],
+        "responses": {
+          "200": {
+            "description": "Available filters and presets",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "intents": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "minLength": 1,
+                            "example": "same"
+                          },
+                          "label": {
+                            "type": "string",
+                            "minLength": 1,
+                            "example": "同じ大学でマッチ"
+                          },
+                          "description": {
+                            "type": "string",
+                            "minLength": 1
+                          },
+                          "radiusKm": {
+                            "type": "number",
+                            "nullable": true
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "label",
+                          "description"
+                        ]
+                      }
+                    },
+                    "weightPresets": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "minLength": 1
+                          },
+                          "title": {
+                            "type": "string",
+                            "minLength": 1
+                          },
+                          "weights": {
+                            "type": "object",
+                            "properties": {
+                              "major": {
+                                "type": "number"
+                              },
+                              "campus": {
+                                "type": "number"
+                              },
+                              "activity": {
+                                "type": "number"
+                              }
+                            },
+                            "required": [
+                              "major",
+                              "campus",
+                              "activity"
+                            ]
+                          },
+                          "note": {
+                            "type": "string",
+                            "minLength": 1
+                          },
+                          "isActive": {
+                            "type": "boolean"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "title",
+                          "weights",
+                          "note",
+                          "isActive"
+                        ]
+                      }
+                    },
+                    "verificationFlags": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "minLength": 1
+                          },
+                          "label": {
+                            "type": "string",
+                            "minLength": 1
+                          },
+                          "description": {
+                            "type": "string",
+                            "minLength": 1
+                          },
+                          "required": {
+                            "type": "boolean"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "label",
+                          "description",
+                          "required"
+                        ]
+                      }
+                    }
+                  },
+                  "required": [
+                    "intents",
+                    "weightPresets",
+                    "verificationFlags"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/matches/candidates": {
       "get": {
         "summary": "Fetch recommended match candidates for the authenticated user",
@@ -371,6 +541,7 @@
           {
             "schema": {
               "type": "integer",
+              "nullable": true,
               "minimum": 0,
               "description": "Pagination offset",
               "example": 0
