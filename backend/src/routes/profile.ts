@@ -1,6 +1,25 @@
 import { createRoute, z, type OpenAPIHono } from '@hono/zod-openapi';
+import type { UpdateProfileUseCase } from '../usecases/update-profile';
+import type { Profile } from '../domain/entities/profile';
 
-export const registerProfileRoutes = (app: OpenAPIHono) => {
+type ProfileDeps = {
+  updateProfileUseCase: UpdateProfileUseCase;
+};
+
+const AUTHENTICATED_USER_ID = 'user_456';
+
+const toProfileResponse = (profile: Profile) => ({
+  id: profile.id,
+  name: profile.name,
+  universityId: profile.universityId,
+  majors: profile.majors,
+  interests: profile.interests,
+  languages: profile.languages,
+  bio: profile.bio,
+  preferredLocations: profile.preferredLocations,
+});
+
+export const registerProfileRoutes = (app: OpenAPIHono, deps: ProfileDeps) => {
   const ProfileSchema = z
     .object({
       id: z.string().min(1).openapi({ example: 'user_456' }),
@@ -58,18 +77,14 @@ export const registerProfileRoutes = (app: OpenAPIHono) => {
     },
   });
 
-  app.openapi(updateProfileRoute, (c) => {
+  app.openapi(updateProfileRoute, async (c) => {
     const profileUpdates = c.req.valid('json');
 
-    return c.json({
-      id: 'user_456',
-      universityId: 'uni_1234',
-      name: profileUpdates.name ?? 'Mika Sato',
-      majors: profileUpdates.majors ?? ['Economics', 'Data Science'],
-      interests: profileUpdates.interests ?? ['AI ethics', 'Music'],
-      languages: profileUpdates.languages ?? ['ja', 'en'],
-      bio: profileUpdates.bio ?? 'Looking for research exchange opportunities.',
-      preferredLocations: profileUpdates.preferredLocations ?? ['Tokyo', 'Osaka'],
+    const updated = await deps.updateProfileUseCase.execute({
+      ...profileUpdates,
+      id: AUTHENTICATED_USER_ID,
     });
+
+    return c.json(toProfileResponse(updated));
   });
 };

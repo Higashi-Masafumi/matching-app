@@ -1,6 +1,13 @@
 import { createRoute, z, type OpenAPIHono } from '@hono/zod-openapi';
+import type { GetRecommendedCandidatesUseCase } from '../usecases/get-recommended-candidates';
 
-export const registerMatchRoutes = (app: OpenAPIHono) => {
+type MatchDeps = {
+  getRecommendedCandidatesUseCase: GetRecommendedCandidatesUseCase;
+};
+
+const AUTHENTICATED_USER_ID = 'user_456';
+
+export const registerMatchRoutes = (app: OpenAPIHono, deps: MatchDeps) => {
   const CandidateSchema = z
     .object({
       id: z.string().min(1).openapi({ example: 'candidate_987' }),
@@ -23,7 +30,7 @@ export const registerMatchRoutes = (app: OpenAPIHono) => {
 
   const MatchQuerySchema = z.object({
     limit: z
-      .number()
+      .coerce.number()
       .int()
       .min(1)
       .max(25)
@@ -31,7 +38,7 @@ export const registerMatchRoutes = (app: OpenAPIHono) => {
       .optional()
       .openapi({ description: 'Number of candidates to retrieve', example: 10 }),
     offset: z
-      .number()
+      .coerce.number()
       .int()
       .min(0)
       .optional()
@@ -70,12 +77,14 @@ export const registerMatchRoutes = (app: OpenAPIHono) => {
     },
   });
 
-  app.openapi(recommendedCandidatesRoute, (c) => {
+  app.openapi(recommendedCandidatesRoute, async (c) => {
     const { limit = 10, offset = 0 } = c.req.valid('query');
-
-    return c.json({
-      results: [],
-      nextOffset: offset + limit,
+    const result = await deps.getRecommendedCandidatesUseCase.execute({
+      userId: AUTHENTICATED_USER_ID,
+      limit,
+      offset,
     });
+
+    return c.json(result);
   });
 };

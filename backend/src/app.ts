@@ -4,6 +4,8 @@ import type { Context } from 'hono';
 import { registerCatalogRoutes } from './routes/catalog';
 import { registerMatchRoutes } from './routes/matches';
 import { registerProfileRoutes } from './routes/profile';
+import { createContainer } from './container';
+import { errorHandler } from './middleware/error-handler';
 
 type OpenAPIConfig = Parameters<InstanceType<typeof OpenAPIHono>['getOpenAPIDocument']>[0];
 type OpenAPIConfigWithComponents = OpenAPIConfig & {
@@ -19,7 +21,7 @@ export const openApiConfig: OpenAPIConfigWithComponents = {
     version: '0.1.0',
     description: 'API specification for the university matching platform.',
   },
-  servers: [{ url: 'https://api.example.com' }],
+  servers: [{ url: 'http://localhost:3000' }],
   components: {
     securitySchemes: {
       UniversityEmailOtp: {
@@ -43,17 +45,26 @@ export const openApiConfig: OpenAPIConfigWithComponents = {
 
 export const createApp = () => {
   const app = new OpenAPIHono();
+  const container = createContainer();
 
   app.use('*', logger());
+  app.use('*', errorHandler);
 
   app.get('/', (c: Context) => c.json({ message: 'Matching App API is running' }));
   app.get('/healthz', (c: Context) => c.json({ status: 'ok' }));
 
   app.doc('/openapi.json', openApiConfig);
 
-  registerCatalogRoutes(app);
-  registerMatchRoutes(app);
-  registerProfileRoutes(app);
+  registerCatalogRoutes(app, {
+    listUniversitiesUseCase: container.listUniversitiesUseCase,
+    getCatalogConfigurationUseCase: container.getCatalogConfigurationUseCase,
+  });
+  registerMatchRoutes(app, {
+    getRecommendedCandidatesUseCase: container.getRecommendedCandidatesUseCase,
+  });
+  registerProfileRoutes(app, {
+    updateProfileUseCase: container.updateProfileUseCase,
+  });
 
   const routeNotFound = createRoute({
     method: 'get',
