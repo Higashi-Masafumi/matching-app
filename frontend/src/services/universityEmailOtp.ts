@@ -1,4 +1,7 @@
+import type { Client } from 'openapi-fetch';
+
 import { apiClient } from './api-client';
+import type { paths } from './api-schema';
 
 export type OtpRequestPayload = { email: string };
 export type OtpRequestResponse = { deliveryHint: string; expiresInSeconds: number; domain: string };
@@ -14,8 +17,11 @@ export type OtpVerificationResponse = {
 const getErrorMessage = (error: { message?: string; data?: { message?: string } }) =>
   error.data?.message ?? error.message ?? '通信に失敗しました。時間をおいて再度お試しください。';
 
-export async function requestUniversityEmailOtp({ email }: OtpRequestPayload) {
-  const { data, error } = await apiClient.POST('/auth/email/request', { body: { email } });
+export async function requestUniversityEmailOtp(
+  { email }: OtpRequestPayload,
+  client: Client<paths> = apiClient
+) {
+  const { data, error } = await client.POST('/auth/email/request', { body: { email } });
 
   if (error || !data) {
     throw new Error(getErrorMessage(error ?? {}));
@@ -24,8 +30,11 @@ export async function requestUniversityEmailOtp({ email }: OtpRequestPayload) {
   return data as OtpRequestResponse;
 }
 
-export async function verifyUniversityEmailOtp({ email, code }: OtpVerificationPayload) {
-  const { data, error } = await apiClient.POST('/auth/email/verify', { body: { email, code } });
+export async function verifyUniversityEmailOtp(
+  { email, code }: OtpVerificationPayload,
+  client: Client<paths> = apiClient
+) {
+  const { data, error } = await client.POST('/auth/email/verify', { body: { email, code } });
 
   if (error || !data) {
     throw new Error(getErrorMessage(error ?? {}));

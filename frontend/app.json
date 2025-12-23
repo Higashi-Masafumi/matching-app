@@ -40,6 +40,12 @@
         }
       ]
     ],
+    "extra": {
+      "apiBaseUrl": "http://localhost:3001",
+      "auth0Domain": "your-tenant.region.auth0.com",
+      "auth0ClientId": "YOUR_AUTH0_CLIENT_ID",
+      "auth0Audience": "https://api.your-service.example"
+    },
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
