@@ -1,31 +1,25 @@
-import { OpenAPIRegistry, extendZodWithOpenApi } from '@asteasolutions/zod-to-openapi';
-import { z } from 'zod';
+import { createRoute, z, type OpenAPIHono } from '@hono/zod-openapi';
 
-extendZodWithOpenApi(z);
-
-export const registerMatchRoutes = (registry: OpenAPIRegistry) => {
-  const CandidateSchema = registry.register(
-    'MatchCandidate',
-    z
-      .object({
-        id: z.string().min(1).openapi({ example: 'candidate_987' }),
-        name: z.string().min(1).openapi({ example: 'Hiro Tanaka' }),
-        universityId: z.string().min(1).openapi({ example: 'uni_1234' }),
-        matchScore: z
-          .number()
-          .min(0)
-          .max(1)
-          .openapi({ description: 'Compatibility between 0 and 1', example: 0.82 }),
-        sharedInterests: z
-          .array(z.string().min(1))
-          .openapi({ example: ['Machine Learning', 'Language Exchange'] }),
-        introduction: z
-          .string()
-          .optional()
-          .openapi({ example: 'Interested in study abroad research projects.' }),
-      })
-      .openapi({ description: 'Candidate suggested for matching' })
-  );
+export const registerMatchRoutes = (app: OpenAPIHono) => {
+  const CandidateSchema = z
+    .object({
+      id: z.string().min(1).openapi({ example: 'candidate_987' }),
+      name: z.string().min(1).openapi({ example: 'Hiro Tanaka' }),
+      universityId: z.string().min(1).openapi({ example: 'uni_1234' }),
+      matchScore: z
+        .number()
+        .min(0)
+        .max(1)
+        .openapi({ description: 'Compatibility between 0 and 1', example: 0.82 }),
+      sharedInterests: z
+        .array(z.string().min(1))
+        .openapi({ example: ['Machine Learning', 'Language Exchange'] }),
+      introduction: z
+        .string()
+        .optional()
+        .openapi({ example: 'Interested in study abroad research projects.' }),
+    })
+    .openapi('MatchCandidate');
 
   const MatchQuerySchema = z.object({
     limit: z
@@ -44,15 +38,14 @@ export const registerMatchRoutes = (registry: OpenAPIRegistry) => {
       .openapi({ description: 'Pagination offset', example: 0 }),
   });
 
-  const MatchCandidatesResponseSchema = registry.register(
-    'MatchCandidatesResponse',
-    z.object({
+  const MatchCandidatesResponseSchema = z
+    .object({
       results: z.array(CandidateSchema),
       nextOffset: z.number().int().nullable().openapi({ example: 10 }),
     })
-  );
+    .openapi('MatchCandidatesResponse');
 
-  registry.registerPath({
+  const recommendedCandidatesRoute = createRoute({
     method: 'get',
     path: '/matches/candidates',
     summary: 'Fetch recommended match candidates for the authenticated user',
@@ -75,5 +68,14 @@ export const registerMatchRoutes = (registry: OpenAPIRegistry) => {
         description: 'Missing or invalid email OTP authentication',
       },
     },
+  });
+
+  app.openapi(recommendedCandidatesRoute, (c) => {
+    const { limit = 10, offset = 0 } = c.req.valid('query');
+
+    return c.json({
+      results: [],
+      nextOffset: offset + limit,
+    });
   });
 };
