@@ -1,3 +1,4 @@
+import { useMutation } from '@tanstack/react-query';
 import { useState } from 'react';
 import {
   Alert,
@@ -14,6 +15,7 @@ import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { Colors, Fonts } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useApiClient } from '@/src/providers/api-provider';
 import { requestUniversityEmailOtp, verifyUniversityEmailOtp } from '@/src/services/universityEmailOtp';
 
 function showToast(message: string) {
@@ -28,34 +30,54 @@ function showToast(message: string) {
 export default function EmailOtpScreen() {
   const colorScheme = useColorScheme();
   const theme = Colors[colorScheme ?? 'light'];
+  const { fetchClient } = useApiClient();
   const [email, setEmail] = useState('student@u-tokyo.ac.jp');
   const [otp, setOtp] = useState('');
   const [deliveryHint, setDeliveryHint] = useState<string | null>(null);
   const [otpExpiresIn, setOtpExpiresIn] = useState<number | null>(null);
   const [verificationMessage, setVerificationMessage] = useState<string | null>(null);
   const [otpError, setOtpError] = useState<string | null>(null);
-  const [isRequestingOtp, setIsRequestingOtp] = useState(false);
-  const [isVerifyingOtp, setIsVerifyingOtp] = useState(false);
 
-  const handleRequestOtp = async () => {
-    setIsRequestingOtp(true);
-    setOtpError(null);
-    setVerificationMessage(null);
-
-    try {
-      const response = await requestUniversityEmailOtp({ email });
+  const requestOtpMutation = useMutation({
+    mutationKey: ['request-university-email-otp'],
+    mutationFn: (payload: { email: string }) => requestUniversityEmailOtp(payload, fetchClient),
+    onSuccess: (response) => {
       setDeliveryHint(response.deliveryHint);
       setOtpExpiresIn(response.expiresInSeconds);
+      setOtpError(null);
+      setVerificationMessage(null);
       showToast('ワンタイムコードを送信しました（モック）');
-    } catch (error) {
+    },
+    onError: (error) => {
       if (error instanceof Error) {
         setOtpError(error.message);
-      } else {
-        setOtpError('コード送信に失敗しました。再度お試しください。');
+        return;
       }
-    } finally {
-      setIsRequestingOtp(false);
-    }
+      setOtpError('コード送信に失敗しました。再度お試しください。');
+    },
+  });
+
+  const verifyOtpMutation = useMutation({
+    mutationKey: ['verify-university-email-otp'],
+    mutationFn: (payload: { email: string; code: string }) => verifyUniversityEmailOtp(payload, fetchClient),
+    onSuccess: (result) => {
+      setVerificationMessage(`${result.verifiedEmail} が認証されました。トークン: ${result.token}`);
+      setOtpError(null);
+      showToast('大学メールを認証しました（モック）');
+    },
+    onError: (error) => {
+      if (error instanceof Error) {
+        setOtpError(error.message);
+        return;
+      }
+      setOtpError('認証に失敗しました。コードを確認してください。');
+    },
+  });
+
+  const handleRequestOtp = async () => {
+    setOtpError(null);
+    setVerificationMessage(null);
+    requestOtpMutation.mutate({ email });
   };
 
   const handleVerifyOtp = async () => {
@@ -64,23 +86,9 @@ export default function EmailOtpScreen() {
       return;
     }
 
-    setIsVerifyingOtp(true);
     setOtpError(null);
     setVerificationMessage(null);
-
-    try {
-      const result = await verifyUniversityEmailOtp({ email, code: otp });
-      setVerificationMessage(`${result.verifiedEmail} が認証されました。トークン: ${result.token}`);
-      showToast('大学メールを認証しました（モック）');
-    } catch (error) {
-      if (error instanceof Error) {
-        setOtpError(error.message);
-      } else {
-        setOtpError('認証に失敗しました。コードを確認してください。');
-      }
-    } finally {
-      setIsVerifyingOtp(false);
-    }
+    verifyOtpMutation.mutate({ email, code: otp });
   };
 
   return (
@@ -110,16 +118,16 @@ export default function EmailOtpScreen() {
 
         <Pressable
           onPress={handleRequestOtp}
-          disabled={isRequestingOtp}
+          disabled={requestOtpMutation.isPending}
           style={({ pressed }) => [
             styles.primaryButton,
             {
               backgroundColor: theme.tint,
-              opacity: pressed || isRequestingOtp ? 0.85 : 1,
+              opacity: pressed || requestOtpMutation.isPending ? 0.85 : 1,
             },
           ]}>
           <ThemedText style={styles.primaryButtonText}>
-            {isRequestingOtp ? '送信中...' : '6桁コードを送信する'}
+            {requestOtpMutation.isPending ? '送信中...' : '6桁コードを送信する'}
           </ThemedText>
         </Pressable>
 
@@ -138,13 +146,13 @@ export default function EmailOtpScreen() {
 
         <Pressable
           onPress={handleVerifyOtp}
-          disabled={isVerifyingOtp}
+          disabled={verifyOtpMutation.isPending}
           style={({ pressed }) => [
             styles.secondaryButton,
-            { borderColor: theme.tint, opacity: pressed || isVerifyingOtp ? 0.85 : 1 },
+            { borderColor: theme.tint, opacity: pressed || verifyOtpMutation.isPending ? 0.85 : 1 },
           ]}>
-          <ThemedText style={[styles.secondaryButtonText, { color: theme.tint }]}> 
-            {isVerifyingOtp ? '認証中...' : 'コードを検証する'}
+          <ThemedText style={[styles.secondaryButtonText, { color: theme.tint }]}>
+            {verifyOtpMutation.isPending ? '認証中...' : 'コードを検証する'}
           </ThemedText>
         </Pressable>
 
