@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useReducer, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
@@ -17,50 +17,74 @@ import {
 export default function AdminWeightsScreen() {
   const colorScheme = useColorScheme();
   const theme = Colors[colorScheme ?? 'light'];
-  const [adminState, setAdminState] = useState<AdminState | null>(null);
   const [pendingAction, setPendingAction] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [state, dispatch] = useReducer(
+    (
+      current: { data: AdminState | null; isLoading: boolean },
+      action:
+        | { type: 'load/start' }
+        | { type: 'load/success'; payload: AdminState }
+        | { type: 'load/error' }
+        | { type: 'update'; payload: AdminState | null }
+    ) => {
+      switch (action.type) {
+        case 'load/start':
+          return { ...current, isLoading: true };
+        case 'load/success':
+          return { data: action.payload, isLoading: false };
+        case 'load/error':
+          return { data: null, isLoading: false };
+        case 'update':
+          return { ...current, data: action.payload };
+        default:
+          return current;
+      }
+    },
+    { data: null, isLoading: true }
+  );
 
-  const load = async () => {
-    setIsLoading(true);
+  const adminState = state.data;
+  const isLoading = state.isLoading;
+
+  const load = useCallback(async () => {
+    dispatch({ type: 'load/start' });
     try {
-      const state = await getAdminControls();
-      setAdminState(state);
+      const next = await getAdminControls();
+      dispatch({ type: 'load/success', payload: next });
     } catch {
-      setAdminState(null);
-    } finally {
-      setIsLoading(false);
+      dispatch({ type: 'load/error' });
     }
-  };
+  }, []);
 
   useEffect(() => {
     load();
-  }, []);
+  }, [load]);
 
   const activePreset = useMemo(
     () => weightPresetCatalog.find((preset) => preset.key === adminState?.weightPreset),
     [adminState?.weightPreset]
   );
 
-  const handlePresetChange = async (presetKey: AdminState['weightPreset']) => {
+  const handlePresetChange = (presetKey: AdminState['weightPreset']) => {
     if (!adminState) return;
     const previous = adminState;
     setPendingAction('preset');
-    setAdminState({ ...adminState, weightPreset: presetKey });
+    dispatch({ type: 'update', payload: { ...adminState, weightPreset: presetKey } });
 
-    try {
-      const next = await setWeightPreset(presetKey);
-      setAdminState(next);
-    } catch {
-      setAdminState(previous);
-    } finally {
-      setPendingAction(null);
-    }
+    setWeightPreset(presetKey)
+      .then((next) => {
+        dispatch({ type: 'update', payload: next });
+      })
+      .catch(() => {
+        dispatch({ type: 'update', payload: previous });
+      })
+      .finally(() => {
+        setPendingAction(null);
+      });
   };
 
-  const handleVerificationToggle = async () => {
+  const handleVerificationToggle = () => {
     if (!adminState) return;
-
     const previous = adminState;
     const optimistic: AdminState = {
       ...adminState,
@@ -68,16 +92,18 @@ export default function AdminWeightsScreen() {
     };
 
     setPendingAction('verification');
-    setAdminState(optimistic);
+    dispatch({ type: 'update', payload: optimistic });
 
-    try {
-      const next = await toggleVerificationPolicy();
-      setAdminState(next);
-    } catch {
-      setAdminState(previous);
-    } finally {
-      setPendingAction(null);
-    }
+    toggleVerificationPolicy()
+      .then((next) => {
+        dispatch({ type: 'update', payload: next });
+      })
+      .catch(() => {
+        dispatch({ type: 'update', payload: previous });
+      })
+      .finally(() => {
+        setPendingAction(null);
+      });
   };
 
   return (
