@@ -1,4 +1,8 @@
 import { createRoute, z, type OpenAPIHono } from '@hono/zod-openapi';
+import { SignJWT } from 'jose';
+
+const jwtIssuer = 'matching-app-email-otp';
+const jwtSecret = process.env.EMAIL_AUTH_JWT_SECRET;
 
 const domainAllowlist = ['u-tokyo.ac.jp', 'kyoto-u.ac.jp', 'waseda.jp', 'keio.jp', 'omu.ac.jp'];
 
@@ -10,6 +14,14 @@ const otpStore = new Map<
 const OTP_EXPIRY_MS = 10 * 60 * 1000;
 
 const generateOtp = () => Math.floor(100000 + Math.random() * 900000).toString();
+
+const getJwtSecret = () => {
+  if (!jwtSecret) {
+    throw new Error('EMAIL_AUTH_JWT_SECRET is not configured.');
+  }
+
+  return new TextEncoder().encode(jwtSecret);
+};
 
 const maskEmail = (email: string) => {
   const [localPart, domain] = email.split('@');
@@ -86,7 +98,7 @@ export const registerAuthRoutes = (app: OpenAPIHono) => {
     method: 'post',
     path: '/auth/email/verify',
     summary: 'Verify a university email OTP',
-    description: 'Verifies the one-time passcode and returns a session token placeholder.',
+    description: 'Verifies the one-time passcode and returns a signed JWT for API access.',
     tags: ['Auth'],
     request: {
       body: {
@@ -109,7 +121,7 @@ export const registerAuthRoutes = (app: OpenAPIHono) => {
         content: {
           'application/json': {
             schema: z.object({
-              token: z.string().openapi({ example: 'otp_verified_token' }),
+              token: z.string().openapi({ example: 'email_otp_jwt' }),
               verifiedEmail: z.string().email(),
               verifiedDomain: z.string(),
               verifiedAt: z.string().datetime(),
@@ -149,8 +161,22 @@ export const registerAuthRoutes = (app: OpenAPIHono) => {
 
     otpStore.delete(email);
 
+    if (!jwtSecret) {
+      return c.json({ message: '認証トークンの発行に失敗しました。管理者に連絡してください。' }, 500);
+    }
+
+    const token = await new SignJWT({
+      email,
+      domain: extractDomain(email),
+    })
+      .setProtectedHeader({ alg: 'HS256', typ: 'JWT' })
+      .setIssuedAt()
+      .setIssuer(jwtIssuer)
+      .setExpirationTime('2h')
+      .sign(getJwtSecret());
+
     return c.json({
-      token: 'otp_verified_token',
+      token,
       verifiedEmail: email,
       verifiedDomain: extractDomain(email),
       verifiedAt: new Date().toISOString(),

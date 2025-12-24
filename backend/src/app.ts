@@ -7,7 +7,7 @@ import { registerMatchRoutes } from './routes/matches';
 import { registerProfileRoutes } from './routes/profile';
 import { createContainer } from './container';
 import { errorHandler } from './middleware/error-handler';
-import { auth0Middleware } from './middleware/auth0';
+import { emailOtpMiddleware } from './middleware/email-otp';
 
 type OpenAPIConfig = Parameters<InstanceType<typeof OpenAPIHono>['getOpenAPIDocument']>[0];
 type OpenAPIConfigWithComponents = OpenAPIConfig & {
@@ -26,16 +26,16 @@ export const openApiConfig: OpenAPIConfigWithComponents = {
   servers: [{ url: 'http://localhost:3000' }],
   components: {
     securitySchemes: {
-      Auth0AccessToken: {
+      EmailOtpToken: {
         type: 'http',
         scheme: 'bearer',
         bearerFormat: 'JWT',
         description:
-          'Validated against Auth0. Provide an access token obtained from the Auth0 tenant configured for this API.',
+          'Provide the JWT issued after verifying a university email OTP.',
       },
     },
   },
-  security: [{ Auth0AccessToken: [] }],
+  security: [{ EmailOtpToken: [] }],
 };
 
 export const createApp = () => {
@@ -50,8 +50,8 @@ export const createApp = () => {
 
   app.doc('/openapi.json', openApiConfig);
 
-  app.use('/matches/*', auth0Middleware);
-  app.use('/profile/*', auth0Middleware);
+  app.use('/matches/*', emailOtpMiddleware);
+  app.use('/profile/*', emailOtpMiddleware);
 
   registerAuthRoutes(app);
   registerCatalogRoutes(app, {

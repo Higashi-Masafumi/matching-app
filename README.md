@@ -12,8 +12,9 @@ This repository now hosts both the Expo frontend and a new Hono-based backend. E
 - Install: `cd backend && npm install`
 - Develop: `npm run dev`
 - Production build: `npm run build` then `npm start`
-- Auth: Configure `AUTH0_DOMAIN` and `AUTH0_AUDIENCE` environment variables for Auth0 JWT validation middleware.
+- Auth: Configure `EMAIL_AUTH_JWT_SECRET` to sign/verify university email OTP tokens.
 
 ## Notes
 - Node modules and build artifacts are intentionally gitignored for both projects.
 - If you switch dependency registries, remember to align both projects so they resolve packages consistently.
+- Frontend can optionally read `EXPO_PUBLIC_API_BASE_URL` to override the API base URL.

@@ -1,24 +1,25 @@
 import { PropsWithChildren, createContext, useCallback, useContext, useMemo, useReducer } from 'react';
-import * as AuthSession from 'expo-auth-session';
-import Auth0 from 'expo-auth0';
-import Constants from 'expo-constants';
+
+import {
+  requestUniversityEmailOtp,
+  verifyUniversityEmailOtp,
+  type OtpRequestResponse,
+} from '@/services/universityEmailOtp';
 
 type AuthState = {
   accessToken: string | null;
-  idToken: string | null;
   isLoading: boolean;
   userInfo: Record<string, unknown> | null;
 };
 
 type AuthAction =
   | { type: 'START_AUTH' }
-  | { type: 'SET_TOKENS'; accessToken: string; idToken: string | null }
-  | { type: 'SET_USER'; userInfo: Record<string, unknown> | null }
+  | { type: 'SET_TOKEN'; accessToken: string; userInfo: Record<string, unknown> | null }
+  | { type: 'SET_LOADING'; isLoading: boolean }
   | { type: 'LOGOUT' };
 
 const initialAuthState: AuthState = {
   accessToken: null,
-  idToken: null,
   isLoading: false,
   userInfo: null,
 };
@@ -27,15 +28,15 @@ function authReducer(state: AuthState, action: AuthAction): AuthState {
   switch (action.type) {
     case 'START_AUTH':
       return { ...state, isLoading: true };
-    case 'SET_TOKENS':
+    case 'SET_TOKEN':
       return {
         ...state,
         accessToken: action.accessToken,
-        idToken: action.idToken,
+        userInfo: action.userInfo,
         isLoading: false,
       };
-    case 'SET_USER':
-      return { ...state, userInfo: action.userInfo, isLoading: false };
+    case 'SET_LOADING':
+      return { ...state, isLoading: action.isLoading };
     case 'LOGOUT':
       return { ...initialAuthState };
     default:
@@ -45,96 +46,73 @@ function authReducer(state: AuthState, action: AuthAction): AuthState {
 
 type AuthContextValue = {
   accessToken: string | null;
-  idToken: string | null;
   isAuthenticated: boolean;
   isLoading: boolean;
   userInfo: Record<string, unknown> | null;
-  login: () => Promise<void>;
-  logout: () => Promise<void>;
+  requestOtp: (email: string) => Promise<OtpRequestResponse>;
+  verifyOtp: (email: string, code: string) => Promise<void>;
+  logout: () => void;
   getAccessToken: () => Promise<string | null>;
 };
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
-const getExpoExtra = () => (Constants.expoConfig?.extra ?? {}) as Record<string, string | undefined>;
-
 export function AuthProvider({ children }: PropsWithChildren) {
-  const extras = getExpoExtra();
-  const domain = extras.auth0Domain ?? process.env.EXPO_PUBLIC_AUTH0_DOMAIN ?? '';
-  const clientId = extras.auth0ClientId ?? process.env.EXPO_PUBLIC_AUTH0_CLIENT_ID ?? '';
-  const audience = extras.auth0Audience ?? process.env.EXPO_PUBLIC_AUTH0_AUDIENCE;
-  const normalizedDomain = useMemo(() => domain.replace(/^https?:\/\//, ''), [domain]);
-
-  const redirectUri = useMemo(
-    () =>
-      AuthSession.makeRedirectUri({
-        // Proxy is the recommended flow for managed Expo and development builds.
-        useProxy: Constants.appOwnership === 'expo' || Constants.executionEnvironment === 'storeClient',
-        scheme: Constants.expoConfig?.scheme,
-      }),
-    []
-  );
-
-  const auth0Client = useMemo(() => new Auth0({ domain: normalizedDomain, clientId }), [clientId, normalizedDomain]);
-
   const [state, dispatch] = useReducer(authReducer, initialAuthState);
 
-  const login = useCallback(async () => {
-    if (!clientId || !normalizedDomain) {
-      console.warn('Auth0 client ID or domain is not configured');
-      return;
-    }
-
+  const requestOtp = useCallback(async (email: string) => {
     dispatch({ type: 'START_AUTH' });
 
     try {
-      const tokenResult = await auth0Client.webAuth.authorize({
-        redirectUri,
-        audience,
-        scope: 'openid profile email',
-        usePKCE: true,
-      });
-
-      dispatch({
-        type: 'SET_TOKENS',
-        accessToken: tokenResult.accessToken ?? '',
-        idToken: tokenResult.idToken ?? null,
-      });
-
-      if (tokenResult.accessToken) {
-        const profile = await auth0Client.auth.userInfo({ token: tokenResult.accessToken });
-        dispatch({ type: 'SET_USER', userInfo: profile });
-      }
+      const response = await requestUniversityEmailOtp({ email });
+      dispatch({ type: 'SET_LOADING', isLoading: false });
+      return response;
     } catch (error) {
-      console.error('Auth0 login failed', error);
-      dispatch({ type: 'LOGOUT' });
+      console.error('Email OTP request failed', error);
+      dispatch({ type: 'SET_LOADING', isLoading: false });
+      throw error;
     }
-  }, [audience, auth0Client, clientId, normalizedDomain, redirectUri]);
+  }, []);
 
-  const logout = useCallback(async () => {
+  const verifyOtp = useCallback(async (email: string, code: string) => {
+    dispatch({ type: 'START_AUTH' });
+
     try {
-      await auth0Client.webAuth.clearSession({ federated: false, redirectUri });
+      const result = await verifyUniversityEmailOtp({ email, code });
+      dispatch({
+        type: 'SET_TOKEN',
+        accessToken: result.token,
+        userInfo: {
+          verifiedEmail: result.verifiedEmail,
+          verifiedDomain: result.verifiedDomain,
+          verifiedAt: result.verifiedAt,
+        },
+      });
     } catch (error) {
-      console.warn('Auth0 logout failed', error);
-    } finally {
+      console.error('Email OTP verification failed', error);
       dispatch({ type: 'LOGOUT' });
+      throw error;
     }
-  }, [auth0Client, redirectUri]);
+  }, []);
+
+  const logout = useCallback(() => {
+    dispatch({ type: 'LOGOUT' });
+  }, []);
 
   const getAccessToken = useCallback(async () => state.accessToken, [state.accessToken]);
 
   const value = useMemo<AuthContextValue>(
     () => ({
       accessToken: state.accessToken,
-      idToken: state.idToken,
       isAuthenticated: !!state.accessToken,
       isLoading: state.isLoading,
       userInfo: state.userInfo,
-      login,
+      requestOtp,
+      verifyOtp,
       logout,
       getAccessToken,
     }),
-    [getAccessToken, login, logout, state.accessToken, state.idToken, state.isLoading, state.userInfo]
+    [getAccessToken, logout, requestOtp, state.accessToken, state.isLoading, state.userInfo, verifyOtp]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
