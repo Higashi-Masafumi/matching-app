@@ -1,16 +1,15 @@
 import { useRouter } from 'expo-router';
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { Colors, Fonts } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useApiClient } from '@/providers/api-provider';
 import {
   CampusRecord,
   IntentOption,
-  fetchCampusCatalog,
-  fetchIntentOptions,
 } from '@/services/mockApi';
 
 const sampleMatches = [
@@ -38,29 +37,19 @@ export default function MatchesScreen() {
   const colorScheme = useColorScheme();
   const theme = Colors[colorScheme ?? 'light'];
   const router = useRouter();
-  const [campusCatalog, setCampusCatalog] = useState<CampusRecord[]>([]);
-  const [intentOptions, setIntentOptions] = useState<IntentOption[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const { openapi } = useApiClient();
+  const campusQuery = openapi.useQuery('get', '/catalog/universities', {});
+  const configurationQuery = openapi.useQuery('get', '/catalog/configuration', {});
 
-  useEffect(() => {
-    const load = async () => {
-      setIsLoading(true);
-      try {
-        const [campuses, intents] = await Promise.all([fetchCampusCatalog(), fetchIntentOptions()]);
-        setCampusCatalog(campuses);
-        setIntentOptions(intents);
-        setError(null);
-      } catch (err) {
-        console.error('マッチデータの取得に失敗しました', err);
-        setError('マッチデータの取得に失敗しました。再読み込みしてください。');
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    load();
-  }, []);
+  const campusCatalog: CampusRecord[] = (campusQuery.data?.results ?? []).map(
+    ({ country: _country, website: _website, ...rest }) => rest
+  );
+  const intentOptions: IntentOption[] = configurationQuery.data?.intents ?? [];
+  const isLoading = campusQuery.isLoading || configurationQuery.isLoading;
+  const error =
+    campusQuery.error || configurationQuery.error
+      ? 'マッチデータの取得に失敗しました。再読み込みしてください。'
+      : null;
 
   const primaryIntent = useMemo(() => intentOptions[0]?.label ?? '交流', [intentOptions]);
 

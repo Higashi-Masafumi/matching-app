@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useReducer, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -75,8 +75,6 @@ function showToast(message: string) {
 
 export default function ExploreScreen() {
   const colorScheme = useColorScheme();
-  const [adminState, setAdminState] = useState<AdminState | null>(null);
-  const [isLoadingAdmin, setIsLoadingAdmin] = useState(true);
   const [pendingAction, setPendingAction] = useState<string | null>(null);
   const [email, setEmail] = useState('student@u-tokyo.ac.jp');
   const [otp, setOtp] = useState('');
@@ -87,22 +85,48 @@ export default function ExploreScreen() {
   const [isRequestingOtp, setIsRequestingOtp] = useState(false);
   const [isVerifyingOtp, setIsVerifyingOtp] = useState(false);
   const theme = Colors[colorScheme ?? 'light'];
+  const [adminState, dispatch] = useReducer(
+    (
+      current: { data: AdminState | null; isLoading: boolean },
+      action:
+        | { type: 'load/start' }
+        | { type: 'load/success'; payload: AdminState }
+        | { type: 'load/error' }
+        | { type: 'update'; payload: AdminState | null }
+    ) => {
+      switch (action.type) {
+        case 'load/start':
+          return { ...current, isLoading: true };
+        case 'load/success':
+          return { data: action.payload, isLoading: false };
+        case 'load/error':
+          return { data: null, isLoading: false };
+        case 'update':
+          return { ...current, data: action.payload };
+        default:
+          return current;
+      }
+    },
+    { data: null, isLoading: true }
+  );
 
-  const refreshAdminState = async () => {
-    setIsLoadingAdmin(true);
+  const isLoadingAdmin = adminState.isLoading;
+  const currentAdminState = adminState.data;
+
+  const refreshAdminState = useCallback(async () => {
+    dispatch({ type: 'load/start' });
     try {
       const data = await getAdminControls();
-      setAdminState(data);
+      dispatch({ type: 'load/success', payload: data });
     } catch {
+      dispatch({ type: 'load/error' });
       showToast('管理モックの読み込みに失敗しました。もう一度お試しください。');
-    } finally {
-      setIsLoadingAdmin(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     refreshAdminState();
-  }, []);
+  }, [refreshAdminState]);
 
   const handleRequestOtp = async () => {
     setIsRequestingOtp(true);
@@ -152,52 +176,54 @@ export default function ExploreScreen() {
     }
   };
 
-  const handlePresetChange = async (presetKey: AdminState['weightPreset']) => {
-    if (!adminState) return;
-
-    const previous = adminState;
+  const handlePresetChange = (presetKey: AdminState['weightPreset']) => {
+    if (!currentAdminState) return;
+    const previous = currentAdminState;
     setPendingAction('preset');
-    setAdminState({ ...adminState, weightPreset: presetKey });
+    dispatch({ type: 'update', payload: { ...currentAdminState, weightPreset: presetKey } });
 
-    try {
-      const nextState = await setWeightPreset(presetKey);
-      setAdminState(nextState);
-      showToast('重みプリセットを更新しました (mock)');
-    } catch {
-      setAdminState(previous);
-      showToast('プリセット更新に失敗しました (mock)');
-    } finally {
-      setPendingAction(null);
-    }
+    setWeightPreset(presetKey)
+      .then((next) => {
+        dispatch({ type: 'update', payload: next });
+        showToast('重みプリセットを更新しました (mock)');
+      })
+      .catch(() => {
+        dispatch({ type: 'update', payload: previous });
+        showToast('プリセット更新に失敗しました (mock)');
+      })
+      .finally(() => {
+        setPendingAction(null);
+      });
   };
 
-  const handleVerificationToggle = async () => {
-    if (!adminState) return;
-
-    const previous = adminState;
+  const handleVerificationToggle = () => {
+    if (!currentAdminState) return;
+    const previous = currentAdminState;
     const optimistic: AdminState = {
-      ...adminState,
-      verificationPolicy: adminState.verificationPolicy === 'strict' ? 'relaxed' : 'strict',
+      ...currentAdminState,
+      verificationPolicy: currentAdminState.verificationPolicy === 'strict' ? 'relaxed' : 'strict',
     };
 
     setPendingAction('verification');
-    setAdminState(optimistic);
+    dispatch({ type: 'update', payload: optimistic });
 
-    try {
-      const nextState = await toggleVerificationPolicy();
-      setAdminState(nextState);
-      showToast('本人確認ポリシーを更新しました (mock)');
-    } catch {
-      setAdminState(previous);
-      showToast('本人確認ポリシーの更新に失敗しました (mock)');
-    } finally {
-      setPendingAction(null);
-    }
+    toggleVerificationPolicy()
+      .then((next) => {
+        dispatch({ type: 'update', payload: next });
+        showToast('本人確認ポリシーを更新しました (mock)');
+      })
+      .catch(() => {
+        dispatch({ type: 'update', payload: previous });
+        showToast('本人確認ポリシーの更新に失敗しました (mock)');
+      })
+      .finally(() => {
+        setPendingAction(null);
+      });
   };
 
   const activePreset = useMemo(
-    () => weightPresetCatalog.find((preset) => preset.key === adminState?.weightPreset),
-    [adminState?.weightPreset]
+    () => weightPresetCatalog.find((preset) => preset.key === currentAdminState?.weightPreset),
+    [currentAdminState?.weightPreset]
   );
 
   return (
@@ -305,7 +331,7 @@ export default function ExploreScreen() {
       <Section title="運営が操作できるレバー">
         <ThemedText style={styles.subtitle}>マッチング結果を意図に合わせるための管理UI案です。</ThemedText>
         <AdminMockPanel
-          adminState={adminState}
+          adminState={currentAdminState}
           isLoading={isLoadingAdmin}
           pendingAction={pendingAction}
           onPresetChange={handlePresetChange}

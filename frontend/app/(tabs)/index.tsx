@@ -1,19 +1,16 @@
 import { useRouter } from 'expo-router';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Switch, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { Colors, Fonts } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useApiClient } from '@/providers/api-provider';
 import {
   CampusRecord,
   IntentOption,
   WeightPreset,
-  fetchCampusCatalog,
-  fetchIntentOptions,
-  fetchVerificationFlags,
-  fetchWeightPresets,
 } from '@/services/mockApi';
 
 const matchIdeas = [
@@ -40,18 +37,28 @@ const matchIdeas = [
 export default function HomeScreen() {
   const colorScheme = useColorScheme();
   const router = useRouter();
-  const [campusCatalog, setCampusCatalog] = useState<CampusRecord[]>([]);
-  const [intentOptions, setIntentOptions] = useState<IntentOption[]>([]);
-  const [weightPresets, setWeightPresets] = useState<WeightPreset[]>([]);
-  const [verificationOptions, setVerificationOptions] = useState<string[]>([]);
+  const { openapi } = useApiClient();
   const [selectedTargets, setSelectedTargets] = useState<string[]>([]);
   const [intent, setIntent] = useState('');
   const [isVerifiedOnly, setIsVerifiedOnly] = useState(true);
   const [enableSmartRotation, setEnableSmartRotation] = useState(true);
   const [presetKey, setPresetKey] = useState('');
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const isMountedRef = useRef(true);
+  const hasAppliedDefaults = useRef(false);
+
+  const campusQuery = openapi.useQuery('get', '/catalog/universities', {});
+  const configurationQuery = openapi.useQuery('get', '/catalog/configuration', {});
+
+  const campusCatalog: CampusRecord[] = (campusQuery.data?.results ?? []).map(
+    ({ country: _country, website: _website, ...rest }) => rest
+  );
+  const intentOptions: IntentOption[] = configurationQuery.data?.intents ?? [];
+  const weightPresets: WeightPreset[] = configurationQuery.data?.weightPresets ?? [];
+  const verificationOptions = (configurationQuery.data?.verificationFlags ?? []).map((flag) => flag.label);
+  const isLoading = campusQuery.isLoading || configurationQuery.isLoading;
+  const error =
+    campusQuery.error || configurationQuery.error
+      ? '設定データの取得に失敗しました。再読み込みしてください。'
+      : null;
 
   const activePreset = useMemo(() => {
     return (
@@ -65,46 +72,18 @@ export default function HomeScreen() {
     );
   }, [presetKey, weightPresets]);
 
-  const loadData = useCallback(async () => {
-    setIsLoading(true);
-    try {
-      const [campuses, intents, presets, verificationFlags] = await Promise.all([
-        fetchCampusCatalog(),
-        fetchIntentOptions(),
-        fetchWeightPresets(),
-        fetchVerificationFlags(),
-      ]);
-
-      if (!isMountedRef.current) return;
-
-      setCampusCatalog(campuses);
-      setIntentOptions(intents);
-      setWeightPresets(presets);
-      setVerificationOptions(verificationFlags.map((flag) => flag.label));
-      setSelectedTargets((prev) => (prev.length > 0 ? prev : campuses.slice(0, 2).map((campus) => campus.id)));
-      setIntent((prev) => (prev ? prev : intents[0]?.id ?? ''));
-      setPresetKey((prev) => (prev ? prev : presets[0]?.id ?? ''));
-      setIsVerifiedOnly(verificationFlags.some((flag) => flag.required));
-      setError(null);
-    } catch (error) {
-      if (isMountedRef.current) {
-        console.error('設定データ取得時にエラーが発生しました', error);
-        setError('設定データの取得に失敗しました。再読み込みしてください。');
-      }
-    } finally {
-      if (isMountedRef.current) {
-        setIsLoading(false);
-      }
-    }
-  }, []);
-
   useEffect(() => {
-    loadData();
+    if (hasAppliedDefaults.current) return;
+    if (!campusCatalog.length && !intentOptions.length && !weightPresets.length && !verificationOptions.length) {
+      return;
+    }
 
-    return () => {
-      isMountedRef.current = false;
-    };
-  }, [loadData]);
+    setSelectedTargets((prev) => (prev.length > 0 ? prev : campusCatalog.slice(0, 2).map((campus) => campus.id)));
+    setIntent((prev) => (prev ? prev : intentOptions[0]?.id ?? ''));
+    setPresetKey((prev) => (prev ? prev : weightPresets[0]?.id ?? ''));
+    setIsVerifiedOnly(configurationQuery.data?.verificationFlags?.some((flag) => flag.required) ?? true);
+    hasAppliedDefaults.current = true;
+  }, [campusCatalog, intentOptions, weightPresets, verificationOptions, configurationQuery.data]);
 
   const toggleTarget = (id: string) => {
     setSelectedTargets((prev) =>
@@ -136,7 +115,12 @@ export default function HomeScreen() {
             データ取得エラー
           </ThemedText>
           <ThemedText>{error}</ThemedText>
-          <Pressable onPress={loadData} style={[styles.retryButton, { borderColor: theme.tint }]}>
+          <Pressable
+            onPress={() => {
+              campusQuery.refetch();
+              configurationQuery.refetch();
+            }}
+            style={[styles.retryButton, { borderColor: theme.tint }]}>
             <ThemedText style={[styles.retryLabel, { color: theme.tint }]}>再読み込み</ThemedText>
           </Pressable>
         </ThemedView>
