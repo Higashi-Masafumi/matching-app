@@ -1,6 +1,13 @@
 # Frontend Screen Map & Navigation (Proposed)
 
-## 1. Tabs & Initial Navigation
+## 1. Delivery Priorities (MVP)
+
+1. **Onboarding (auth → profile)** is the top priority, with student verification delivered first.
+2. **Swipe → Match Modal → Likes → Chat** is the fixed build order for the core loop.
+3. **Profile/Settings** can be built in parallel with the above, but student verification ships ahead of the rest.
+4. **Admin settings** stay minimal for MVP (show only essential status/controls plus extension hooks).
+
+## 2. Tabs & Initial Navigation
 
 ### Tab placement (routes under `app/(tabs)/`)
 | Tab | Route | Purpose | Notes |
@@ -17,7 +24,7 @@
 
 > Rationale: Swipe is the primary engagement loop. Likes/Chat/Profile are secondary tasks.
 
-## 2. Onboarding Flow (Screens & Order)
+## 3. Onboarding Flow (Screens & Order)
 
 Proposed routes under `app/(onboarding)/`:
 
@@ -32,7 +39,7 @@ Notes:
 - `student-verify` can re-use existing verification screen components (currently `app/verify/email-otp`).
 - When onboarding is complete, persist a flag (e.g. `onboardingCompleted = true`) to skip on subsequent launches.
 
-## 3. Match Modal (MatchModal) Entry & Return
+## 4. Match Modal (MatchModal) Entry & Return
 
 ### Entry points
 - **Primary**: from Swipe flow when a mutual match occurs.
@@ -50,7 +57,7 @@ Notes:
 Example param contract:
 - `returnTo=swipe` or `returnTo=likes`.
 
-## 4. Screen Inventory (Agreed List)
+## 5. Screen Inventory (Agreed List)
 
 ### Tabs
 - `app/(tabs)/swipe`
