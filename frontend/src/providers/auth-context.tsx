@@ -1,9 +1,7 @@
-import { PropsWithChildren, createContext, useCallback, useContext, useEffect, useMemo, useReducer } from 'react';
+import { PropsWithChildren, createContext, useCallback, useContext, useMemo, useReducer } from 'react';
 import * as AuthSession from 'expo-auth-session';
-import * as WebBrowser from 'expo-web-browser';
+import Auth0 from 'expo-auth0';
 import Constants from 'expo-constants';
-
-WebBrowser.maybeCompleteAuthSession();
 
 type AuthState = {
   accessToken: string | null;
@@ -52,7 +50,7 @@ type AuthContextValue = {
   isLoading: boolean;
   userInfo: Record<string, unknown> | null;
   login: () => Promise<void>;
-  logout: () => void;
+  logout: () => Promise<void>;
   getAccessToken: () => Promise<string | null>;
 };
 
@@ -65,80 +63,63 @@ export function AuthProvider({ children }: PropsWithChildren) {
   const domain = extras.auth0Domain ?? process.env.EXPO_PUBLIC_AUTH0_DOMAIN ?? '';
   const clientId = extras.auth0ClientId ?? process.env.EXPO_PUBLIC_AUTH0_CLIENT_ID ?? '';
   const audience = extras.auth0Audience ?? process.env.EXPO_PUBLIC_AUTH0_AUDIENCE;
+  const normalizedDomain = useMemo(() => domain.replace(/^https?:\/\//, ''), [domain]);
 
-  const redirectUri = AuthSession.makeRedirectUri({
-    useProxy: true,
-    scheme: Constants.expoConfig?.scheme,
-  });
-
-  const discovery = AuthSession.useAutoDiscovery(`https://${domain}`);
-  const [request, response, promptAsync] = AuthSession.useAuthRequest(
-    {
-      clientId,
-      scopes: ['openid', 'profile', 'email'],
-      redirectUri,
-      responseType: AuthSession.ResponseType.Code,
-      extraParams: audience ? { audience } : undefined,
-      usePKCE: true,
-    },
-    discovery
+  const redirectUri = useMemo(
+    () =>
+      AuthSession.makeRedirectUri({
+        // Proxy is the recommended flow for managed Expo and development builds.
+        useProxy: Constants.appOwnership === 'expo' || Constants.executionEnvironment === 'storeClient',
+        scheme: Constants.expoConfig?.scheme,
+      }),
+    []
   );
+
+  const auth0Client = useMemo(() => new Auth0({ domain: normalizedDomain, clientId }), [clientId, normalizedDomain]);
 
   const [state, dispatch] = useReducer(authReducer, initialAuthState);
 
-  useEffect(() => {
-    if (!response || response.type !== 'success') return;
-    if (!request || !discovery) return;
-
-    const exchange = async () => {
-      dispatch({ type: 'START_AUTH' });
-      const tokenResult = await AuthSession.exchangeCodeAsync(
-        {
-          clientId,
-          code: response.params.code,
-          redirectUri,
-          extraParams: {
-            code_verifier: request.codeVerifier ?? '',
-            audience,
-          },
-        },
-        discovery
-      );
-
-      dispatch({ type: 'SET_TOKENS', accessToken: tokenResult.accessToken ?? '', idToken: tokenResult.idToken ?? null });
-
-      if (tokenResult.accessToken) {
-        const profileResponse = await fetch(`https://${domain}/userinfo`, {
-          headers: {
-            Authorization: `Bearer ${tokenResult.accessToken}`,
-          },
-        });
-
-        if (profileResponse.ok) {
-          const profileJson = await profileResponse.json();
-          dispatch({ type: 'SET_USER', userInfo: profileJson });
-        }
-      }
-    };
-
-    exchange().catch((error) => {
-      console.error('Auth0 login failed', error);
-      dispatch({ type: 'LOGOUT' });
-    });
-  }, [response, request, discovery, clientId, redirectUri, audience, domain]);
-
   const login = useCallback(async () => {
-    if (!clientId || !domain) {
+    if (!clientId || !normalizedDomain) {
       console.warn('Auth0 client ID or domain is not configured');
       return;
     }
 
-    await promptAsync({ useProxy: true, showInRecents: true });
-  }, [promptAsync, clientId, domain]);
+    dispatch({ type: 'START_AUTH' });
 
-  const logout = useCallback(() => {
-    dispatch({ type: 'LOGOUT' });
-  }, []);
+    try {
+      const tokenResult = await auth0Client.webAuth.authorize({
+        redirectUri,
+        audience,
+        scope: 'openid profile email',
+        usePKCE: true,
+      });
+
+      dispatch({
+        type: 'SET_TOKENS',
+        accessToken: tokenResult.accessToken ?? '',
+        idToken: tokenResult.idToken ?? null,
+      });
+
+      if (tokenResult.accessToken) {
+        const profile = await auth0Client.auth.userInfo({ token: tokenResult.accessToken });
+        dispatch({ type: 'SET_USER', userInfo: profile });
+      }
+    } catch (error) {
+      console.error('Auth0 login failed', error);
+      dispatch({ type: 'LOGOUT' });
+    }
+  }, [audience, auth0Client, clientId, normalizedDomain, redirectUri]);
+
+  const logout = useCallback(async () => {
+    try {
+      await auth0Client.webAuth.clearSession({ federated: false, redirectUri });
+    } catch (error) {
+      console.warn('Auth0 logout failed', error);
+    } finally {
+      dispatch({ type: 'LOGOUT' });
+    }
+  }, [auth0Client, redirectUri]);
 
   const getAccessToken = useCallback(async () => state.accessToken, [state.accessToken]);
 
