@@ -53,7 +53,7 @@ export const registerProfileRoutes = (app: OpenAPIHono, deps: ProfileDeps) => {
     summary: 'Update the current user profile',
     description: 'Persists profile fields to improve match quality.',
     tags: ['Profile'],
-    security: [{ Auth0AccessToken: [] }],
+    security: [{ EmailOtpToken: [] }],
     request: {
       body: {
         content: {
@@ -71,7 +71,7 @@ export const registerProfileRoutes = (app: OpenAPIHono, deps: ProfileDeps) => {
           },
         },
       },
-      401: { description: 'Auth0 token is missing or invalid' },
+      401: { description: 'Email OTP token is missing or invalid' },
     },
   });
 
