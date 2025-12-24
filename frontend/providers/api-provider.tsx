@@ -4,7 +4,7 @@ import { PropsWithChildren, createContext, useContext, useMemo, useState } from 
 import createFetchClient, { type Client, useAuth as createAuthMiddleware } from 'openapi-fetch';
 import createReactQueryClient from 'openapi-react-query';
 
-import type { paths } from '@/src/services/api-schema';
+import type { paths } from '@/openapi/api-schema';
 import { useAuth } from './auth-context';
 
 const API_BASE_URL =

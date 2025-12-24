@@ -14,7 +14,7 @@ import {
   fetchIntentOptions,
   fetchVerificationFlags,
   fetchWeightPresets,
-} from '@/src/services/mockApi';
+} from '@/services/mockApi';
 
 const matchIdeas = [
   {
@@ -663,4 +663,3 @@ const styles = StyleSheet.create({
     fontSize: 12,
   },
 });
-

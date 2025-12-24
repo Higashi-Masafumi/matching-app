@@ -1,6 +1,6 @@
 import Constants from 'expo-constants';
 import createClient from 'openapi-fetch';
-import type { paths } from './api-schema';
+import type { paths } from '@/openapi/api-schema';
 
 export const API_BASE_URL =
   (Constants.expoConfig?.extra as { apiBaseUrl?: string } | undefined)?.apiBaseUrl ??

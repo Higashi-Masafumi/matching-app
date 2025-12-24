@@ -11,7 +11,7 @@ import {
   IntentOption,
   fetchCampusCatalog,
   fetchIntentOptions,
-} from '@/src/services/mockApi';
+} from '@/services/mockApi';
 
 const sampleMatches = [
   {

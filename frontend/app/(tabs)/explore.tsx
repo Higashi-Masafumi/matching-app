@@ -26,7 +26,7 @@ import {
 import {
   requestUniversityEmailOtp,
   verifyUniversityEmailOtp,
-} from '@/src/services/universityEmailOtp';
+} from '@/services/universityEmailOtp';
 
 const launchChecklist = [
   '大学メール/学生証での二段階認証フロー',
