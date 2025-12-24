@@ -1,4 +1,4 @@
-import { apiClient } from './api-client';
+import { apiClient } from '@/openapi/api-client';
 
 export type CampusRecord = {
   id: string;

@@ -15,8 +15,8 @@ import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { Colors, Fonts } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
-import { useApiClient } from '@/src/providers/api-provider';
-import { requestUniversityEmailOtp, verifyUniversityEmailOtp } from '@/src/services/universityEmailOtp';
+import { useApiClient } from '@/providers/api-provider';
+import { requestUniversityEmailOtp, verifyUniversityEmailOtp } from '@/services/universityEmailOtp';
 
 function showToast(message: string) {
   if (Platform.OS === 'android') {

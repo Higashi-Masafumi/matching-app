@@ -1,7 +1,7 @@
 import type { Client } from 'openapi-fetch';
 
-import { apiClient } from './api-client';
-import type { paths } from './api-schema';
+import { apiClient } from '@/openapi/api-client';
+import type { paths } from '@/openapi/api-schema';
 
 export type OtpRequestPayload = { email: string };
 export type OtpRequestResponse = { deliveryHint: string; expiresInSeconds: number; domain: string };

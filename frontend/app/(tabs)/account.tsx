@@ -5,7 +5,7 @@ import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { Colors, Fonts } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
-import { useAuth } from '@/src/providers/auth-context';
+import { useAuth } from '@/providers/auth-context';
 
 export default function AccountScreen() {
   const colorScheme = useColorScheme();
