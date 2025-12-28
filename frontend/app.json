@@ -41,7 +41,9 @@
       ]
     ],
     "extra": {
-      "apiBaseUrl": "http://localhost:3001"
+      "apiBaseUrl": "http://localhost:3001",
+      "auth0Domain": "dev-4xj01d2l.us.auth0.com",
+      "auth0ClientId": "yum0r1978j5s2i601i2qy051"
     },
     "experiments": {
       "typedRoutes": true,
