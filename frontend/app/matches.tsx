@@ -1,45 +1,50 @@
-import { useRouter } from 'expo-router';
-import { useMemo } from 'react';
-import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { useRouter } from "expo-router";
+import { useMemo } from "react";
+import { Pressable, ScrollView, StyleSheet, View } from "react-native";
 
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { Colors, Fonts } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
-import { useApiClient } from '@/providers/api-provider';
-import {
-  CampusRecord,
-  IntentOption,
-} from '@/services/mockApi';
+import { ThemedText } from "@/components/themed-text";
+import { ThemedView } from "@/components/themed-view";
+import { Colors, Fonts } from "@/constants/theme";
+import { useColorScheme } from "@/hooks/use-color-scheme";
+import { useApiClient } from "@/providers/ApiProvider";
+import type { CampusRecord, IntentOption } from "@/services/mockApi";
 
 const sampleMatches = [
   {
-    id: 'mx1',
-    title: 'AI/データサイエンス連携',
-    summary: '東大・東北大の情報系学生で共同勉強会を開催。',
-    details: ['本人確認済み', '専攻の一致度 92%', '距離フィルター: 関東・東北'],
+    id: "mx1",
+    title: "AI/データサイエンス連携",
+    summary: "東大・東北大の情報系学生で共同勉強会を開催。",
+    details: ["本人確認済み", "専攻の一致度 92%", "距離フィルター: 関東・東北"],
   },
   {
-    id: 'mx2',
-    title: '国際交流イベントの共同企画',
-    summary: '早稲田・上智・青学の国際系サークルでボランティア企画を共催。',
-    details: ['本人確認済み', '活動タグ: 国際交流', '対象大学 3校'],
+    id: "mx2",
+    title: "国際交流イベントの共同企画",
+    summary: "早稲田・上智・青学の国際系サークルでボランティア企画を共催。",
+    details: ["本人確認済み", "活動タグ: 国際交流", "対象大学 3校"],
   },
   {
-    id: 'mx3',
-    title: 'ゼミ横断の研究トーク',
-    summary: '関西圏の理系ゼミが研究テーマを共有し、共同発表を準備。',
-    details: ['本人確認済み', '専攻の一致度 84%', 'ローテーション: スマート表示'],
+    id: "mx3",
+    title: "ゼミ横断の研究トーク",
+    summary: "関西圏の理系ゼミが研究テーマを共有し、共同発表を準備。",
+    details: [
+      "本人確認済み",
+      "専攻の一致度 84%",
+      "ローテーション: スマート表示",
+    ],
   },
 ];
 
 export default function MatchesScreen() {
   const colorScheme = useColorScheme();
-  const theme = Colors[colorScheme ?? 'light'];
+  const theme = Colors[colorScheme ?? "light"];
   const router = useRouter();
   const { openapi } = useApiClient();
-  const campusQuery = openapi.useQuery('get', '/catalog/universities', {});
-  const configurationQuery = openapi.useQuery('get', '/catalog/configuration', {});
+  const campusQuery = openapi.useQuery("get", "/catalog/universities", {});
+  const configurationQuery = openapi.useQuery(
+    "get",
+    "/catalog/configuration",
+    {}
+  );
 
   const campusCatalog: CampusRecord[] = (campusQuery.data?.results ?? []).map(
     ({ country: _country, website: _website, ...rest }) => rest
@@ -48,22 +53,29 @@ export default function MatchesScreen() {
   const isLoading = campusQuery.isLoading || configurationQuery.isLoading;
   const error =
     campusQuery.error || configurationQuery.error
-      ? 'マッチデータの取得に失敗しました。再読み込みしてください。'
+      ? "マッチデータの取得に失敗しました。再読み込みしてください。"
       : null;
 
-  const primaryIntent = useMemo(() => intentOptions[0]?.label ?? '交流', [intentOptions]);
+  const primaryIntent = useMemo(
+    () => intentOptions[0]?.label ?? "交流",
+    [intentOptions]
+  );
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
       {isLoading ? (
-        <ThemedView style={[styles.infoBox, { borderColor: theme.icon }]}> 
+        <ThemedView style={[styles.infoBox, { borderColor: theme.icon }]}>
           <ThemedText>マッチ候補を読み込んでいます...</ThemedText>
         </ThemedView>
       ) : null}
 
       {error ? (
         <ThemedView
-          style={[styles.infoBox, { borderColor: theme.tint, backgroundColor: `${theme.tint}10` }]}> 
+          style={[
+            styles.infoBox,
+            { borderColor: theme.tint, backgroundColor: `${theme.tint}10` },
+          ]}
+        >
           <ThemedText type="subtitle" style={styles.boxTitle}>
             データ取得エラー
           </ThemedText>
@@ -71,7 +83,7 @@ export default function MatchesScreen() {
         </ThemedView>
       ) : null}
 
-      <ThemedView style={[styles.hero, { borderColor: theme.icon }]}> 
+      <ThemedView style={[styles.hero, { borderColor: theme.icon }]}>
         <ThemedText type="title" style={styles.heroTitle}>
           マッチ結果一覧
         </ThemedText>
@@ -79,8 +91,16 @@ export default function MatchesScreen() {
           Homeで設定した対象大学や意図をもとに生成されたサンプル結果です。本人確認済みのユーザーのみを表示します。
         </ThemedText>
         <View style={styles.badgeRow}>
-          <Badge label={`対象大学: 約${campusCatalog.length || 8}校`} themeColor={theme.icon} subtle />
-          <Badge label={`意図: ${primaryIntent}`} themeColor={theme.icon} subtle />
+          <Badge
+            label={`対象大学: 約${campusCatalog.length || 8}校`}
+            themeColor={theme.icon}
+            subtle
+          />
+          <Badge
+            label={`意図: ${primaryIntent}`}
+            themeColor={theme.icon}
+            subtle
+          />
           <Badge label="本人確認必須" themeColor={theme.tint} />
         </View>
       </ThemedView>
@@ -91,17 +111,27 @@ export default function MatchesScreen() {
         </ThemedText>
         <View style={styles.cardList}>
           {sampleMatches.map((match) => (
-            <ThemedView key={match.id} style={[styles.matchCard, { borderColor: theme.icon }]}> 
+            <ThemedView
+              key={match.id}
+              style={[styles.matchCard, { borderColor: theme.icon }]}
+            >
               <View style={styles.matchHeader}>
                 <ThemedText type="subtitle" style={styles.cardTitle}>
                   {match.title}
                 </ThemedText>
                 <Badge label="本人確認済" themeColor={theme.tint} />
               </View>
-              <ThemedText style={styles.matchSummary}>{match.summary}</ThemedText>
+              <ThemedText style={styles.matchSummary}>
+                {match.summary}
+              </ThemedText>
               <View style={styles.metaRow}>
                 {match.details.map((detail) => (
-                  <Badge key={detail} label={detail} themeColor={theme.icon} subtle />
+                  <Badge
+                    key={detail}
+                    label={detail}
+                    themeColor={theme.icon}
+                    subtle
+                  />
                 ))}
               </View>
             </ThemedView>
@@ -117,12 +147,12 @@ export default function MatchesScreen() {
           <ActionButton
             label="重み付けを変更"
             accent={theme.tint}
-            onPress={() => router.push('/admin/weights')}
+            onPress={() => router.push("/admin/weights")}
           />
           <ActionButton
             label="大学メールを確認"
             accent={theme.icon}
-            onPress={() => router.push('/verify/email-otp')}
+            onPress={() => router.push("/verify/email-otp")}
           />
         </View>
       </Section>
@@ -130,7 +160,13 @@ export default function MatchesScreen() {
   );
 }
 
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
+function Section({
+  title,
+  children,
+}: {
+  title: string;
+  children: React.ReactNode;
+}) {
   return (
     <ThemedView style={styles.section}>
       <ThemedText type="title" style={styles.sectionTitle}>
@@ -141,29 +177,51 @@ function Section({ title, children }: { title: string; children: React.ReactNode
   );
 }
 
-function Badge({ label, themeColor, subtle }: { label: string; themeColor: string; subtle?: boolean }) {
+function Badge({
+  label,
+  themeColor,
+  subtle,
+}: {
+  label: string;
+  themeColor: string;
+  subtle?: boolean;
+}) {
   return (
     <View
       style={[
         styles.badge,
         {
-          backgroundColor: subtle ? 'transparent' : `${themeColor}12`,
+          backgroundColor: subtle ? "transparent" : `${themeColor}12`,
           borderColor: `${themeColor}50`,
         },
-      ]}>
+      ]}
+    >
       <ThemedText style={styles.badgeText}>{label}</ThemedText>
     </View>
   );
 }
 
-function ActionButton({ label, accent, onPress }: { label: string; accent: string; onPress: () => void }) {
+function ActionButton({
+  label,
+  accent,
+  onPress,
+}: {
+  label: string;
+  accent: string;
+  onPress: () => void;
+}) {
   return (
     <Pressable
       onPress={onPress}
       style={({ pressed }) => [
         styles.actionButton,
-        { borderColor: accent, backgroundColor: `${accent}12`, opacity: pressed ? 0.85 : 1 },
-      ]}>
+        {
+          borderColor: accent,
+          backgroundColor: `${accent}12`,
+          opacity: pressed ? 0.85 : 1,
+        },
+      ]}
+    >
       <ThemedText type="subtitle" style={styles.actionButtonText}>
         {label}
       </ThemedText>
@@ -201,8 +259,8 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
   badgeRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
+    flexDirection: "row",
+    flexWrap: "wrap",
     gap: 8,
   },
   section: {
@@ -228,17 +286,17 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   matchHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     gap: 10,
   },
   matchSummary: {
     lineHeight: 18,
   },
   metaRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
+    flexDirection: "row",
+    flexWrap: "wrap",
     gap: 8,
   },
   cardTitle: {
@@ -255,9 +313,9 @@ const styles = StyleSheet.create({
     fontSize: 12,
   },
   actionRow: {
-    flexDirection: 'row',
+    flexDirection: "row",
     gap: 10,
-    flexWrap: 'wrap',
+    flexWrap: "wrap",
   },
   actionButton: {
     flex: 1,
@@ -265,7 +323,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderRadius: 12,
     gap: 4,
-    minWidth: '48%',
+    minWidth: "48%",
   },
   actionButtonText: {
     fontFamily: Fonts.rounded,
@@ -273,6 +331,6 @@ const styles = StyleSheet.create({
   },
   actionHint: {
     fontSize: 12,
-    color: '#555',
+    color: "#555",
   },
 });
