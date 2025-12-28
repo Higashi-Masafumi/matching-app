@@ -6,6 +6,7 @@ import {
   useEffect,
   useState,
 } from "react";
+import Constants from "expo-constants";
 import { useAuth0 } from "react-native-auth0";
 
 type AuthContextValue = {
@@ -29,15 +30,23 @@ export function AuthContextProvider({ children }: PropsWithChildren) {
   const { user, authorize, isLoading } = useAuth0();
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [accessToken, setAccessToken] = useState<string | null>(null);
+
+  const auth0Audience =
+    (Constants.expoConfig?.extra as { auth0Audience?: string } | undefined)
+      ?.auth0Audience ?? process.env.EXPO_PUBLIC_AUTH0_AUDIENCE;
+
   useEffect(() => {
     setIsAuthenticated(!!user);
   }, [user]);
   const getAccessToken = useCallback(async () => {
     if (!user) return null;
-    const credentials = await authorize({ scope: "openid profile email" });
+    const credentials = await authorize({
+      scope: "openid profile email",
+      ...(auth0Audience ? { audience: auth0Audience } : {}),
+    });
     setAccessToken(credentials?.accessToken ?? null);
     return credentials?.accessToken ?? null;
-  }, [user, authorize]);
+  }, [user, authorize, auth0Audience]);
 
   return (
     <AuthContext.Provider

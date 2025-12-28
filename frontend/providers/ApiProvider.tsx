@@ -30,20 +30,28 @@ const ApiClientContext = createContext<ApiProviderValue | null>(null);
 export function ApiProvider({ children }: PropsWithChildren) {
   const { authorize } = useAuth0();
   const [queryClient] = useState(() => new QueryClient());
+  const auth0Audience =
+    (Constants.expoConfig?.extra as { auth0Audience?: string } | undefined)
+      ?.auth0Audience ?? process.env.EXPO_PUBLIC_AUTH0_AUDIENCE;
 
   const fetchClient = useMemo(() => {
     const client = createFetchClient<paths>({ baseUrl: API_BASE_URL });
+    const authorizeOptions = {
+      scope: "openid profile email",
+      ...(auth0Audience ? { audience: auth0Audience } : {}),
+    };
     const authMiddleware: Middleware = {
       async onRequest({ request }) {
-        const accessToken = await authorize({ scope: "openid profile email" });
-        if (accessToken) {
-          request.headers.set("Authorization", `Bearer ${accessToken}`);
+        const credentials = await authorize(authorizeOptions);
+        const token = credentials?.accessToken;
+        if (token) {
+          request.headers.set("Authorization", `Bearer ${token}`);
         }
         return request;
       },
       async onResponse({ response }) {
         if (response.status === 401) {
-          await authorize({ scope: "openid profile email" });
+          await authorize(authorizeOptions);
         }
         return response;
       },
@@ -51,7 +59,7 @@ export function ApiProvider({ children }: PropsWithChildren) {
     client.use(authMiddleware);
 
     return client;
-  }, [authorize]);
+  }, [authorize, auth0Audience]);
 
   const apiClient = useMemo(
     () => createReactQueryClient(fetchClient),
