@@ -1,6 +1,6 @@
-import type { Context, Next } from "hono";
+import type { Context, MiddlewareHandler, Next } from "hono";
 import { HTTPException } from "hono/http-exception";
-import { jwtVerify } from "jose";
+import { jwt } from "hono/jwt";
 
 const jwtIssuer = "matching-app-email-otp";
 const jwtSecret = process.env.EMAIL_AUTH_JWT_SECRET;
@@ -18,29 +18,43 @@ const getJwtSecret = () => {
     throw new HTTPException(500, { message });
   }
 
-  return new TextEncoder().encode(jwtSecret);
+  return jwtSecret;
 };
 
-export const emailOtpMiddleware = async (c: Context, next: Next) => {
-  const authHeader = c.req.header("authorization");
-  if (!authHeader?.startsWith("Bearer ")) {
-    throw new HTTPException(401, {
-      message: "Authorization header with Bearer token is required.",
-    });
-  }
+const createJwtMiddleware = () =>
+  jwt({
+    secret: getJwtSecret(),
+    alg: "HS256",
+    verification: {
+      iss: jwtIssuer,
+    },
+  });
 
-  const token = authHeader.replace("Bearer ", "").trim();
-
+export const emailOtpMiddleware: MiddlewareHandler = async (
+  c: Context,
+  next: Next,
+) => {
   try {
-    const secret = getJwtSecret();
-    const verification = await jwtVerify(token, secret, { issuer: jwtIssuer });
-    const payload = verification.payload as Record<string, unknown>;
-    c.set("emailUser", {
-      email: payload.email as string,
-      domain: payload.domain as string,
-    } satisfies EmailOtpUser);
-    await next();
+    const jwtMiddleware = createJwtMiddleware();
+    await jwtMiddleware(c, async () => {
+      const payload = c.get("jwtPayload") as Record<string, unknown> | null;
+      const email = typeof payload?.email === "string" ? payload.email : null;
+      const domain = typeof payload?.domain === "string" ? payload.domain : null;
+
+      if (!email || !domain) {
+        throw new HTTPException(401, {
+          message: "Email OTP token payload is invalid.",
+        });
+      }
+
+      c.set("emailUser", { email, domain } satisfies EmailOtpUser);
+      await next();
+    });
   } catch (error) {
+    if (error instanceof HTTPException) {
+      throw error;
+    }
+
     console.error("Email OTP token verification failed:", error);
     throw new HTTPException(401, {
       message: "Invalid or expired email OTP token.",

@@ -163,7 +163,7 @@ export const registerAuthRoutes = (app: OpenAPIHono) => {
     },
   });
 
-  app.openapi(verifyOtpRoute, (c) => {
+  app.openapi(verifyOtpRoute, async (c) => {
     const { email, code } = c.req.valid("json");
     const record = otpStore.get(email);
 
