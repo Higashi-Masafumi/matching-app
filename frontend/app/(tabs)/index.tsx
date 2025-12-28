@@ -55,9 +55,14 @@ export default function HomeScreen() {
   const campusCatalog: CampusRecord[] = (campusQuery.data?.results ?? []).map(
     ({ country: _country, website: _website, ...rest }) => rest,
   );
-  const intentOptions: IntentOption[] = configurationQuery.data?.intents ?? [];
-  const weightPresets: WeightPreset[] =
-    configurationQuery.data?.weightPresets ?? [];
+  const intentOptions: IntentOption[] = useMemo(
+    () => configurationQuery.data?.intents ?? [],
+    [configurationQuery.data?.intents],
+  );
+  const weightPresets: WeightPreset[] = useMemo(
+    () => configurationQuery.data?.weightPresets ?? [],
+    [configurationQuery.data?.weightPresets],
+  );
   const verificationOptions = (
     configurationQuery.data?.verificationFlags ?? []
   ).map((flag) => flag.label);

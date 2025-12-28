@@ -1,3 +1,4 @@
+import { useMutation } from "@tanstack/react-query";
 import { useCallback, useMemo, useState } from "react";
 import {
   Pressable,
@@ -11,25 +12,74 @@ import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { Colors, Fonts } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
-import { useAuth } from "@/providers/auth-context";
+import { useApiClient } from "@/providers/ApiProvider";
+import {
+  requestUniversityEmailOtp,
+  verifyUniversityEmailOtp,
+} from "@/services/universityEmailOtp";
+
+type VerifiedUserInfo = {
+  verifiedEmail: string;
+  verifiedDomain: string;
+  verifiedAt: string;
+};
 
 export default function AccountScreen() {
   const colorScheme = useColorScheme();
   const theme = Colors[colorScheme ?? "light"];
-  const {
-    isAuthenticated,
-    isLoading,
-    requestOtp,
-    verifyOtp,
-    logout,
-    userInfo,
-    accessToken,
-  } = useAuth();
+  const { fetchClient } = useApiClient();
   const [email, setEmail] = useState("");
   const [code, setCode] = useState("");
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
   const [deliveryHint, setDeliveryHint] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [accessToken, setAccessToken] = useState<string | null>(null);
+  const [userInfo, setUserInfo] = useState<VerifiedUserInfo | null>(null);
+
+  const requestOtpMutation = useMutation({
+    mutationKey: ["request-university-email-otp", email],
+    mutationFn: (payload: { email: string }) =>
+      requestUniversityEmailOtp(payload, fetchClient),
+    onSuccess: (response) => {
+      setDeliveryHint(response.deliveryHint);
+      setStatusMessage(
+        `認証コードを送信しました（${response.expiresInSeconds}秒有効）`,
+      );
+      setErrorMessage(null);
+    },
+    onError: (error) => {
+      setErrorMessage(
+        error instanceof Error
+          ? error.message
+          : "認証コードの送信に失敗しました。",
+      );
+    },
+  });
+
+  const verifyOtpMutation = useMutation({
+    mutationKey: ["verify-university-email-otp", email, code],
+    mutationFn: (payload: { email: string; code: string }) =>
+      verifyUniversityEmailOtp(payload, fetchClient),
+    onSuccess: (result) => {
+      setAccessToken(result.token);
+      setUserInfo({
+        verifiedEmail: result.verifiedEmail,
+        verifiedDomain: result.verifiedDomain,
+        verifiedAt: result.verifiedAt,
+      });
+      setStatusMessage("認証が完了しました。");
+      setErrorMessage(null);
+    },
+    onError: (error) => {
+      setErrorMessage(
+        error instanceof Error ? error.message : "認証に失敗しました。",
+      );
+    },
+  });
+
+  const isLoading =
+    requestOtpMutation.isPending || verifyOtpMutation.isPending;
+  const isAuthenticated = !!userInfo;
 
   const maskedToken = useMemo(() => {
     if (!accessToken) return "未取得";
@@ -40,34 +90,21 @@ export default function AccountScreen() {
     setErrorMessage(null);
     setStatusMessage(null);
 
-    try {
-      const response = await requestOtp(email.trim());
-      setDeliveryHint(response.deliveryHint);
-      setStatusMessage(
-        `認証コードを送信しました（${response.expiresInSeconds}秒有効）`,
-      );
-    } catch (error) {
-      setErrorMessage(
-        error instanceof Error
-          ? error.message
-          : "認証コードの送信に失敗しました。",
-      );
-    }
-  }, [email, requestOtp]);
+    requestOtpMutation.mutate({ email: email.trim() });
+  }, [email, requestOtpMutation]);
 
   const handleVerifyOtp = useCallback(async () => {
     setErrorMessage(null);
     setStatusMessage(null);
 
-    try {
-      await verifyOtp(email.trim(), code.trim());
-      setStatusMessage("認証が完了しました。");
-    } catch (error) {
-      setErrorMessage(
-        error instanceof Error ? error.message : "認証に失敗しました。",
-      );
-    }
-  }, [code, email, verifyOtp]);
+    verifyOtpMutation.mutate({ email: email.trim(), code: code.trim() });
+  }, [code, email, verifyOtpMutation]);
+
+  const handleLogout = useCallback(() => {
+    setAccessToken(null);
+    setUserInfo(null);
+    setStatusMessage("ログアウトしました。");
+  }, []);
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
@@ -172,7 +209,7 @@ export default function AccountScreen() {
         </View>
 
         <Pressable
-          onPress={logout}
+          onPress={handleLogout}
           disabled={isLoading || !isAuthenticated}
           style={({ pressed }) => [
             styles.primaryButton,
