@@ -1,4 +1,4 @@
-import { apiClient } from '@/openapi/api-client';
+import { apiClient } from "@/openapi/api-client";
 
 export type CampusRecord = {
   id: string;
@@ -7,11 +7,11 @@ export type CampusRecord = {
   region: string;
   tags: string[];
   programs: string[];
-  verificationLevel: 'basic' | 'strict';
+  verificationLevel: "basic" | "strict";
 };
 
 export type IntentOption = {
-  id: 'same' | 'nearby' | 'open' | string;
+  id: "same" | "nearby" | "open" | string;
   label: string;
   description: string;
   radiusKm?: number | null;
@@ -36,12 +36,23 @@ export type VerificationFlag = {
   required: boolean;
 };
 
-let cachedConfiguration: { intents: IntentOption[]; weightPresets: WeightPreset[]; verificationFlags: VerificationFlag[] } | null = null;
+let cachedConfiguration: {
+  intents: IntentOption[];
+  weightPresets: WeightPreset[];
+  verificationFlags: VerificationFlag[];
+} | null = null;
 
-const unwrapResponse = <T,>(result: { data?: T; error?: { message?: string; data?: unknown } }) => {
+const unwrapResponse = <T>(result: {
+  data?: T;
+  error?: { message?: string; data?: unknown };
+}) => {
   if (result.error || !result.data) {
-    const message = (result.error as { data?: { message?: string }; message?: string })?.data?.message;
-    throw new Error(message ?? result.error?.message ?? 'データの取得に失敗しました。');
+    const message = (
+      result.error as { data?: { message?: string }; message?: string }
+    )?.data?.message;
+    throw new Error(
+      message ?? result.error?.message ?? "データの取得に失敗しました。",
+    );
   }
 
   return result.data;
@@ -50,7 +61,7 @@ const unwrapResponse = <T,>(result: { data?: T; error?: { message?: string; data
 const fetchConfiguration = async () => {
   if (cachedConfiguration) return cachedConfiguration;
 
-  const response = await apiClient.GET('/catalog/configuration');
+  const response = await apiClient.GET("/catalog/configuration");
   const data = unwrapResponse(response);
 
   cachedConfiguration = data;
@@ -58,10 +69,12 @@ const fetchConfiguration = async () => {
 };
 
 export const fetchCampusCatalog = async () => {
-  const response = await apiClient.GET('/catalog/universities');
+  const response = await apiClient.GET("/catalog/universities");
   const data = unwrapResponse(response);
 
-  return data.results.map(({ country: _country, website: _website, ...rest }) => rest);
+  return data.results.map(
+    ({ country: _country, website: _website, ...rest }) => rest,
+  );
 };
 
 export const fetchIntentOptions = async () => {

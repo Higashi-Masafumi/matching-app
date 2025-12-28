@@ -19,10 +19,13 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '22'
+          node-version: "22"
 
       - name: Install dependencies
         run: npm install
+
+      - name: Format frontend
+        run: npm run format
 
       - name: Lint frontend
         run: npm run lint
@@ -39,10 +42,13 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '22'
+          node-version: "22"
 
       - name: Install dependencies
         run: npm install
+
+      - name: Format backend
+        run: npm run format
 
       - name: Build backend
         run: npm run build

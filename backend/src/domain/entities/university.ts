@@ -6,6 +6,6 @@ export type University = {
   country: string;
   tags: string[];
   programs: string[];
-  verificationLevel: 'basic' | 'strict';
+  verificationLevel: "basic" | "strict";
   website?: string;
 };

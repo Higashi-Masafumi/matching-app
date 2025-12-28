@@ -39,7 +39,7 @@ export default function EmailOtpScreen() {
   const [deliveryHint, setDeliveryHint] = useState<string | null>(null);
   const [otpExpiresIn, setOtpExpiresIn] = useState<number | null>(null);
   const [verificationMessage, setVerificationMessage] = useState<string | null>(
-    null
+    null,
   );
   const [otpError, setOtpError] = useState<string | null>(null);
 
@@ -69,7 +69,7 @@ export default function EmailOtpScreen() {
       verifyUniversityEmailOtp(payload, fetchClient),
     onSuccess: (result) => {
       setVerificationMessage(
-        `${result.verifiedEmail} が認証されました。トークン: ${result.token}`
+        `${result.verifiedEmail} が認証されました。トークン: ${result.token}`,
       );
       setOtpError(null);
       showToast("大学メールを認証しました（モック）");

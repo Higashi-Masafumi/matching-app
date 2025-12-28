@@ -1,8 +1,8 @@
-import type { BetterSQLite3Database } from 'drizzle-orm/better-sqlite3';
-import type * as schema from '../db/schema';
-import { intentOptions, verificationFlags, weightPresets } from '../db/schema';
-import type { CatalogConfiguration } from '../../domain/entities/configuration';
-import type { ConfigurationRepository } from '../../domain/repositories/configuration-repository';
+import type { BetterSQLite3Database } from "drizzle-orm/better-sqlite3";
+import type * as schema from "../db/schema";
+import { intentOptions, verificationFlags, weightPresets } from "../db/schema";
+import type { CatalogConfiguration } from "../../domain/entities/configuration";
+import type { ConfigurationRepository } from "../../domain/repositories/configuration-repository";
 
 type DatabaseClient = BetterSQLite3Database<typeof schema>;
 

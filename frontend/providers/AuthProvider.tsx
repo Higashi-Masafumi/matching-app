@@ -17,7 +17,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
 
   if (!domain || !clientId) {
     console.warn(
-      "Auth0 configuration is missing. Please set auth0Domain and auth0ClientId in app.json extra or environment variables."
+      "Auth0 configuration is missing. Please set auth0Domain and auth0ClientId in app.json extra or environment variables.",
     );
   }
 

@@ -55,7 +55,7 @@ export function ApiProvider({ children }: PropsWithChildren) {
 
   const apiClient = useMemo(
     () => createReactQueryClient(fetchClient),
-    [fetchClient]
+    [fetchClient],
   );
 
   return (

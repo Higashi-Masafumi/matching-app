@@ -43,11 +43,11 @@ export default function MatchesScreen() {
   const configurationQuery = openapi.useQuery(
     "get",
     "/catalog/configuration",
-    {}
+    {},
   );
 
   const campusCatalog: CampusRecord[] = (campusQuery.data?.results ?? []).map(
-    ({ country: _country, website: _website, ...rest }) => rest
+    ({ country: _country, website: _website, ...rest }) => rest,
   );
   const intentOptions: IntentOption[] = configurationQuery.data?.intents ?? [];
   const isLoading = campusQuery.isLoading || configurationQuery.isLoading;
@@ -58,7 +58,7 @@ export default function MatchesScreen() {
 
   const primaryIntent = useMemo(
     () => intentOptions[0]?.label ?? "交流",
-    [intentOptions]
+    [intentOptions],
   );
 
   return (

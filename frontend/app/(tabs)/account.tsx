@@ -1,24 +1,38 @@
-import { useCallback, useMemo, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
+import { useCallback, useMemo, useState } from "react";
+import {
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  TextInput,
+  View,
+} from "react-native";
 
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { Colors, Fonts } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
-import { useAuth } from '@/providers/auth-context';
+import { ThemedText } from "@/components/themed-text";
+import { ThemedView } from "@/components/themed-view";
+import { Colors, Fonts } from "@/constants/theme";
+import { useColorScheme } from "@/hooks/use-color-scheme";
+import { useAuth } from "@/providers/auth-context";
 
 export default function AccountScreen() {
   const colorScheme = useColorScheme();
-  const theme = Colors[colorScheme ?? 'light'];
-  const { isAuthenticated, isLoading, requestOtp, verifyOtp, logout, userInfo, accessToken } = useAuth();
-  const [email, setEmail] = useState('');
-  const [code, setCode] = useState('');
+  const theme = Colors[colorScheme ?? "light"];
+  const {
+    isAuthenticated,
+    isLoading,
+    requestOtp,
+    verifyOtp,
+    logout,
+    userInfo,
+    accessToken,
+  } = useAuth();
+  const [email, setEmail] = useState("");
+  const [code, setCode] = useState("");
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
   const [deliveryHint, setDeliveryHint] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const maskedToken = useMemo(() => {
-    if (!accessToken) return '未取得';
+    if (!accessToken) return "未取得";
     return `${accessToken.slice(0, 8)}...${accessToken.slice(-6)}`;
   }, [accessToken]);
 
@@ -29,9 +43,15 @@ export default function AccountScreen() {
     try {
       const response = await requestOtp(email.trim());
       setDeliveryHint(response.deliveryHint);
-      setStatusMessage(`認証コードを送信しました（${response.expiresInSeconds}秒有効）`);
+      setStatusMessage(
+        `認証コードを送信しました（${response.expiresInSeconds}秒有効）`,
+      );
     } catch (error) {
-      setErrorMessage(error instanceof Error ? error.message : '認証コードの送信に失敗しました。');
+      setErrorMessage(
+        error instanceof Error
+          ? error.message
+          : "認証コードの送信に失敗しました。",
+      );
     }
   }, [email, requestOtp]);
 
@@ -41,9 +61,11 @@ export default function AccountScreen() {
 
     try {
       await verifyOtp(email.trim(), code.trim());
-      setStatusMessage('認証が完了しました。');
+      setStatusMessage("認証が完了しました。");
     } catch (error) {
-      setErrorMessage(error instanceof Error ? error.message : '認証に失敗しました。');
+      setErrorMessage(
+        error instanceof Error ? error.message : "認証に失敗しました。",
+      );
     }
   }, [code, email, verifyOtp]);
 
@@ -54,14 +76,18 @@ export default function AccountScreen() {
           大学メール認証
         </ThemedText>
         <ThemedText style={styles.cardBody}>
-          大学メールアドレスにワンタイムコードを送付し、検証が完了すると API 用の Bearer トークンを取得します。
-          トークンは API 呼び出し時に自動でヘッダーへ付与されます。
+          大学メールアドレスにワンタイムコードを送付し、検証が完了すると API
+          用の Bearer トークンを取得します。 トークンは API
+          呼び出し時に自動でヘッダーへ付与されます。
         </ThemedText>
 
         <View style={styles.fieldGroup}>
           <ThemedText style={styles.fieldLabel}>大学メールアドレス</ThemedText>
           <TextInput
-            style={[styles.input, { borderColor: theme.icon, color: theme.text }]}
+            style={[
+              styles.input,
+              { borderColor: theme.icon, color: theme.text },
+            ]}
             placeholder="student@u-tokyo.ac.jp"
             placeholderTextColor={theme.icon}
             autoCapitalize="none"
@@ -78,18 +104,28 @@ export default function AccountScreen() {
                 borderColor: theme.tint,
                 opacity: pressed || isLoading || !email ? 0.5 : 1,
               },
-            ]}>
-            <ThemedText style={[styles.secondaryButtonText, { color: theme.tint }]}>
+            ]}
+          >
+            <ThemedText
+              style={[styles.secondaryButtonText, { color: theme.tint }]}
+            >
               認証コードを送信
             </ThemedText>
           </Pressable>
-          {deliveryHint ? <ThemedText style={styles.helperText}>送信先: {deliveryHint}</ThemedText> : null}
+          {deliveryHint ? (
+            <ThemedText style={styles.helperText}>
+              送信先: {deliveryHint}
+            </ThemedText>
+          ) : null}
         </View>
 
         <View style={styles.fieldGroup}>
           <ThemedText style={styles.fieldLabel}>認証コード</ThemedText>
           <TextInput
-            style={[styles.input, { borderColor: theme.icon, color: theme.text }]}
+            style={[
+              styles.input,
+              { borderColor: theme.icon, color: theme.text },
+            ]}
             placeholder="123456"
             placeholderTextColor={theme.icon}
             keyboardType="number-pad"
@@ -104,22 +140,30 @@ export default function AccountScreen() {
               styles.primaryButton,
               {
                 backgroundColor: theme.tint,
-                opacity: pressed || isLoading || !email || code.length !== 6 ? 0.5 : 1,
+                opacity:
+                  pressed || isLoading || !email || code.length !== 6 ? 0.5 : 1,
               },
-            ]}>
+            ]}
+          >
             <ThemedText style={styles.primaryButtonText}>
-              {isLoading ? '処理中...' : '認証する'}
+              {isLoading ? "処理中..." : "認証する"}
             </ThemedText>
           </Pressable>
         </View>
 
-        {statusMessage ? <ThemedText style={styles.statusText}>{statusMessage}</ThemedText> : null}
-        {errorMessage ? <ThemedText style={styles.errorText}>{errorMessage}</ThemedText> : null}
+        {statusMessage ? (
+          <ThemedText style={styles.statusText}>{statusMessage}</ThemedText>
+        ) : null}
+        {errorMessage ? (
+          <ThemedText style={styles.errorText}>{errorMessage}</ThemedText>
+        ) : null}
 
         <View style={styles.statusRow}>
           <ThemedText style={styles.statusLabel}>認証状態</ThemedText>
-          <ThemedText style={{ color: isAuthenticated ? theme.tint : theme.icon }}>
-            {isAuthenticated ? 'ログイン済み' : '未ログイン'}
+          <ThemedText
+            style={{ color: isAuthenticated ? theme.tint : theme.icon }}
+          >
+            {isAuthenticated ? "ログイン済み" : "未ログイン"}
           </ThemedText>
         </View>
         <View style={styles.statusRow}>
@@ -136,9 +180,10 @@ export default function AccountScreen() {
               backgroundColor: theme.tint,
               opacity: pressed || isLoading || !isAuthenticated ? 0.5 : 1,
             },
-          ]}>
+          ]}
+        >
           <ThemedText style={styles.primaryButtonText}>
-            {isLoading ? '処理中...' : 'ログアウトする'}
+            {isLoading ? "処理中..." : "ログアウトする"}
           </ThemedText>
         </Pressable>
       </ThemedView>
@@ -150,7 +195,7 @@ export default function AccountScreen() {
         <ThemedText style={styles.cardBody}>
           {isAuthenticated && userInfo
             ? JSON.stringify(userInfo, null, 2)
-            : 'ログインすると認証済みメール情報を表示します。'}
+            : "ログインすると認証済みメール情報を表示します。"}
         </ThemedText>
       </ThemedView>
     </ScrollView>
@@ -189,37 +234,37 @@ const styles = StyleSheet.create({
   },
   helperText: {
     fontSize: 12,
-    color: '#8c8c8c',
+    color: "#8c8c8c",
   },
   statusText: {
-    color: '#1e7f5c',
+    color: "#1e7f5c",
   },
   errorText: {
-    color: '#c0392b',
+    color: "#c0392b",
   },
   statusRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    justifyContent: "space-between",
   },
   statusLabel: {
-    color: '#8c8c8c',
+    color: "#8c8c8c",
   },
   primaryButton: {
     padding: 14,
     borderRadius: 12,
-    alignItems: 'center',
+    alignItems: "center",
   },
   primaryButtonText: {
-    color: '#fff',
-    fontWeight: 'bold',
+    color: "#fff",
+    fontWeight: "bold",
   },
   secondaryButton: {
     borderWidth: 1,
     borderRadius: 12,
     paddingVertical: 12,
-    alignItems: 'center',
+    alignItems: "center",
   },
   secondaryButtonText: {
-    fontWeight: '600',
+    fontWeight: "600",
   },
 });

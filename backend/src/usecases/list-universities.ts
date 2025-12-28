@@ -1,5 +1,8 @@
-import type { University } from '../domain/entities/university';
-import type { ListUniversitiesParams, UniversityRepository } from '../domain/repositories/university-repository';
+import type { University } from "../domain/entities/university";
+import type {
+  ListUniversitiesParams,
+  UniversityRepository,
+} from "../domain/repositories/university-repository";
 
 export class ListUniversitiesUseCase {
   constructor(private readonly universityRepository: UniversityRepository) {}

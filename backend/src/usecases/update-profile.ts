@@ -1,8 +1,8 @@
-import type { Profile } from '../domain/entities/profile';
-import { NotFoundError, ValidationError } from '../domain/errors/domain-error';
-import type { ProfileRepository } from '../domain/repositories/profile-repository';
+import type { Profile } from "../domain/entities/profile";
+import { NotFoundError, ValidationError } from "../domain/errors/domain-error";
+import type { ProfileRepository } from "../domain/repositories/profile-repository";
 
-export type UpdateProfileInput = Partial<Omit<Profile, 'id'>> & { id: string };
+export type UpdateProfileInput = Partial<Omit<Profile, "id">> & { id: string };
 
 export class UpdateProfileUseCase {
   constructor(private readonly profileRepository: ProfileRepository) {}
@@ -11,7 +11,7 @@ export class UpdateProfileUseCase {
     const existing = await this.profileRepository.findById(input.id);
 
     if (!existing) {
-      throw new NotFoundError('Profile not found');
+      throw new NotFoundError("Profile not found");
     }
 
     const updated: Profile = {
@@ -20,7 +20,8 @@ export class UpdateProfileUseCase {
       majors: input.majors ?? existing.majors,
       interests: input.interests ?? existing.interests,
       languages: input.languages ?? existing.languages,
-      preferredLocations: input.preferredLocations ?? existing.preferredLocations,
+      preferredLocations:
+        input.preferredLocations ?? existing.preferredLocations,
     };
 
     this.validate(updated);
@@ -30,11 +31,11 @@ export class UpdateProfileUseCase {
 
   private validate(profile: Profile) {
     if (!profile.name.trim()) {
-      throw new ValidationError('Profile name is required');
+      throw new ValidationError("Profile name is required");
     }
 
     if (!profile.universityId) {
-      throw new ValidationError('University must be specified');
+      throw new ValidationError("University must be specified");
     }
   }
 }

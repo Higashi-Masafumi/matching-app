@@ -1,4 +1,4 @@
-import type { University } from '../entities/university';
+import type { University } from "../entities/university";
 
 export type ListUniversitiesParams = {
   search?: string;

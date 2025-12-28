@@ -46,10 +46,7 @@
               "type": "string",
               "minLength": 1
             },
-            "example": [
-              "国立",
-              "総合"
-            ]
+            "example": ["国立", "総合"]
           },
           "programs": {
             "type": "array",
@@ -58,17 +55,11 @@
               "minLength": 1
             },
             "minItems": 1,
-            "example": [
-              "Computer Science",
-              "Economics"
-            ]
+            "example": ["Computer Science", "Economics"]
           },
           "verificationLevel": {
             "type": "string",
-            "enum": [
-              "basic",
-              "strict"
-            ],
+            "enum": ["basic", "strict"],
             "example": "strict"
           },
           "website": {
@@ -103,10 +94,7 @@
             }
           }
         },
-        "required": [
-          "total",
-          "results"
-        ]
+        "required": ["total", "results"]
       },
       "MatchCandidate": {
         "type": "object",
@@ -139,10 +127,7 @@
               "type": "string",
               "minLength": 1
             },
-            "example": [
-              "Machine Learning",
-              "Language Exchange"
-            ]
+            "example": ["Machine Learning", "Language Exchange"]
           },
           "introduction": {
             "type": "string",
@@ -172,10 +157,7 @@
             "example": 10
           }
         },
-        "required": [
-          "results",
-          "nextOffset"
-        ]
+        "required": ["results", "nextOffset"]
       },
       "Profile": {
         "type": "object",
@@ -201,10 +183,7 @@
               "type": "string",
               "minLength": 1
             },
-            "example": [
-              "Economics",
-              "Data Science"
-            ]
+            "example": ["Economics", "Data Science"]
           },
           "interests": {
             "type": "array",
@@ -212,10 +191,7 @@
               "type": "string",
               "minLength": 1
             },
-            "example": [
-              "AI ethics",
-              "Music"
-            ]
+            "example": ["AI ethics", "Music"]
           },
           "languages": {
             "type": "array",
@@ -223,10 +199,7 @@
               "type": "string",
               "minLength": 1
             },
-            "example": [
-              "ja",
-              "en"
-            ]
+            "example": ["ja", "en"]
           },
           "bio": {
             "type": "string",
@@ -238,10 +211,7 @@
               "type": "string",
               "minLength": 1
             },
-            "example": [
-              "Tokyo",
-              "Osaka"
-            ]
+            "example": ["Tokyo", "Osaka"]
           }
         },
         "required": [
@@ -311,9 +281,7 @@
       "get": {
         "description": "Retrieve universities available for matching.",
         "summary": "List university catalog",
-        "tags": [
-          "Catalog"
-        ],
+        "tags": ["Catalog"],
         "parameters": [
           {
             "schema": {
@@ -378,9 +346,7 @@
       "get": {
         "description": "UI metadata for catalog filters and weighting presets.",
         "summary": "Catalog configuration",
-        "tags": [
-          "Catalog"
-        ],
+        "tags": ["Catalog"],
         "responses": {
           "200": {
             "description": "Available filters and presets",
@@ -413,11 +379,7 @@
                             "nullable": true
                           }
                         },
-                        "required": [
-                          "id",
-                          "label",
-                          "description"
-                        ]
+                        "required": ["id", "label", "description"]
                       }
                     },
                     "weightPresets": {
@@ -446,11 +408,7 @@
                                 "type": "number"
                               }
                             },
-                            "required": [
-                              "major",
-                              "campus",
-                              "activity"
-                            ]
+                            "required": ["major", "campus", "activity"]
                           },
                           "note": {
                             "type": "string",
@@ -490,20 +448,11 @@
                             "type": "boolean"
                           }
                         },
-                        "required": [
-                          "id",
-                          "label",
-                          "description",
-                          "required"
-                        ]
+                        "required": ["id", "label", "description", "required"]
                       }
                     }
                   },
-                  "required": [
-                    "intents",
-                    "weightPresets",
-                    "verificationFlags"
-                  ]
+                  "required": ["intents", "weightPresets", "verificationFlags"]
                 }
               }
             }
@@ -515,9 +464,7 @@
       "get": {
         "summary": "Fetch recommended match candidates for the authenticated user",
         "description": "Returns a ranked list of candidates using the current profile context.",
-        "tags": [
-          "Matches"
-        ],
+        "tags": ["Matches"],
         "security": [
           {
             "UniversityEmailOtp": []
@@ -573,9 +520,7 @@
       "put": {
         "summary": "Update the current user profile",
         "description": "Persists profile fields to improve match quality.",
-        "tags": [
-          "Profile"
-        ],
+        "tags": ["Profile"],
         "security": [
           {
             "StudentIdUpload": []

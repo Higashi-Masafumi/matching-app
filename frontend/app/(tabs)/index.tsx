@@ -49,11 +49,11 @@ export default function HomeScreen() {
   const configurationQuery = openapi.useQuery(
     "get",
     "/catalog/configuration",
-    {}
+    {},
   );
 
   const campusCatalog: CampusRecord[] = (campusQuery.data?.results ?? []).map(
-    ({ country: _country, website: _website, ...rest }) => rest
+    ({ country: _country, website: _website, ...rest }) => rest,
   );
   const intentOptions: IntentOption[] = configurationQuery.data?.intents ?? [];
   const weightPresets: WeightPreset[] =
@@ -94,14 +94,14 @@ export default function HomeScreen() {
     setSelectedTargets((prev) =>
       prev.length > 0
         ? prev
-        : campusCatalog.slice(0, 2).map((campus) => campus.id)
+        : campusCatalog.slice(0, 2).map((campus) => campus.id),
     );
-    setIntent((prev) => (prev ? prev : intentOptions[0]?.id ?? ""));
-    setPresetKey((prev) => (prev ? prev : weightPresets[0]?.id ?? ""));
+    setIntent((prev) => (prev ? prev : (intentOptions[0]?.id ?? "")));
+    setPresetKey((prev) => (prev ? prev : (weightPresets[0]?.id ?? "")));
     setIsVerifiedOnly(
       configurationQuery.data?.verificationFlags?.some(
-        (flag) => flag.required
-      ) ?? true
+        (flag) => flag.required,
+      ) ?? true,
     );
     hasAppliedDefaults.current = true;
   }, [
@@ -114,7 +114,7 @@ export default function HomeScreen() {
 
   const toggleTarget = (id: string) => {
     setSelectedTargets((prev) =>
-      prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
+      prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id],
     );
   };
 
@@ -328,7 +328,7 @@ export default function HomeScreen() {
             ・重み付け: 専攻 {Math.round(activePreset.weights.major * 100)}% /
             エリア
             {` ${Math.round(
-              activePreset.weights.campus * 100
+              activePreset.weights.campus * 100,
             )}% / 活動 ${Math.round(activePreset.weights.activity * 100)}%`}
           </ThemedText>
         </ThemedView>
