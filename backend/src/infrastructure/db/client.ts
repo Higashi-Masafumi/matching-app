@@ -1,8 +1,13 @@
-import BetterSqlite3, { type Database as BetterSqlite3Instance } from 'better-sqlite3';
-import { drizzle, type BetterSQLite3Database } from 'drizzle-orm/better-sqlite3';
-import { mkdirSync } from 'node:fs';
-import { dirname, join } from 'node:path';
-import * as schema from './schema';
+import BetterSqlite3, {
+  type Database as BetterSqlite3Instance,
+} from "better-sqlite3";
+import {
+  type BetterSQLite3Database,
+  drizzle,
+} from "drizzle-orm/better-sqlite3";
+import { mkdirSync } from "node:fs";
+import { dirname, join } from "node:path";
+import * as schema from "./schema";
 
 export type DatabaseClient = {
   connection: BetterSqlite3Instance;
@@ -10,7 +15,8 @@ export type DatabaseClient = {
 };
 
 export const createDatabaseClient = (): DatabaseClient => {
-  const databasePath = process.env.DATABASE_PATH ?? join(process.cwd(), 'data', 'dev.db');
+  const databasePath =
+    process.env.DATABASE_PATH ?? join(process.cwd(), "data", "dev.db");
   mkdirSync(dirname(databasePath), { recursive: true });
 
   const connection = new BetterSqlite3(databasePath);

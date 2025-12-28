@@ -1,6 +1,6 @@
-import { DomainError } from '../domain/errors/domain-error';
-import type { Context, Next } from 'hono';
-import type { StatusCode } from 'hono/utils/http-status';
+import type { Context, Next } from "hono";
+import type { StatusCode } from "hono/utils/http-status";
+import { DomainError } from "../domain/errors/domain-error";
 
 export const errorHandler = async (c: Context, next: Next) => {
   try {
@@ -8,11 +8,18 @@ export const errorHandler = async (c: Context, next: Next) => {
   } catch (error) {
     if (error instanceof DomainError) {
       c.status(error.status as StatusCode);
-      return c.json({ error: error.name, message: error.message, details: error.details });
+      return c.json({
+        error: error.name,
+        message: error.message,
+        details: error.details,
+      });
     }
 
-    console.error('Unhandled error', error);
+    console.error("Unhandled error", error);
     c.status(500 as StatusCode);
-    return c.json({ error: 'InternalServerError', message: '予期しないエラーが発生しました。' });
+    return c.json({
+      error: "InternalServerError",
+      message: "予期しないエラーが発生しました。",
+    });
   }
 };

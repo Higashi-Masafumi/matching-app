@@ -1,9 +1,9 @@
-import { eq } from 'drizzle-orm';
-import type { BetterSQLite3Database } from 'drizzle-orm/better-sqlite3';
-import type * as schema from '../db/schema';
-import { profiles } from '../db/schema';
-import type { Profile } from '../../domain/entities/profile';
-import type { ProfileRepository } from '../../domain/repositories/profile-repository';
+import { eq } from "drizzle-orm";
+import type { BetterSQLite3Database } from "drizzle-orm/better-sqlite3";
+import type * as schema from "../db/schema";
+import { profiles } from "../db/schema";
+import type { Profile } from "../../domain/entities/profile";
+import type { ProfileRepository } from "../../domain/repositories/profile-repository";
 
 type DatabaseClient = BetterSQLite3Database<typeof schema>;
 
@@ -11,7 +11,10 @@ export class ProfileRepositoryDrizzle implements ProfileRepository {
   constructor(private readonly db: DatabaseClient) {}
 
   async findById(id: string): Promise<Profile | null> {
-    const rows = await this.db.select().from(profiles).where(eq(profiles.id, id));
+    const rows = await this.db
+      .select()
+      .from(profiles)
+      .where(eq(profiles.id, id));
     const row = rows[0];
     return row ? this.mapProfile(row) : null;
   }

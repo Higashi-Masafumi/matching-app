@@ -8,7 +8,8 @@
     "dev": "tsx watch src/server.ts",
     "build": "tsc -p .",
     "start": "node dist/server.js",
-    "generate:openapi": "tsx src/scripts/generate-openapi.ts"
+    "generate:openapi": "tsx src/scripts/generate-openapi.ts",
+    "format": "prettier --write ."
   },
   "dependencies": {
     "@hono/node-server": "^1.13.0",
@@ -22,6 +23,7 @@
   "devDependencies": {
     "@types/better-sqlite3": "^7.6.12",
     "@types/node": "^22.9.4",
+    "prettier": "3.7.4",
     "tsx": "^4.19.2",
     "typescript": "^5.6.3",
     "yaml": "^2.6.0"

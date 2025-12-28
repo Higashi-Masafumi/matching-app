@@ -1,35 +1,35 @@
-import { useRouter } from 'expo-router';
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Switch, View } from 'react-native';
+import { useRouter } from "expo-router";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Pressable, ScrollView, StyleSheet, Switch, View } from "react-native";
 
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { Colors, Fonts } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
-import { useApiClient } from '@/providers/api-provider';
-import {
+import { ThemedText } from "@/components/themed-text";
+import { ThemedView } from "@/components/themed-view";
+import { Colors, Fonts } from "@/constants/theme";
+import { useColorScheme } from "@/hooks/use-color-scheme";
+import { useApiClient } from "@/providers/ApiProvider";
+import type {
   CampusRecord,
   IntentOption,
   WeightPreset,
-} from '@/services/mockApi';
+} from "@/services/mockApi";
 
 const matchIdeas = [
   {
-    id: 'm1',
-    title: '同じ専門でゼミ相談',
-    snippet: '情報系専攻同士。研究テーマ・インターン情報を交換。',
+    id: "m1",
+    title: "同じ専門でゼミ相談",
+    snippet: "情報系専攻同士。研究テーマ・インターン情報を交換。",
     matchRate: 92,
   },
   {
-    id: 'm2',
-    title: '合同サークルイベント',
-    snippet: '関東エリアの大学横断でボランティア企画を共催。',
+    id: "m2",
+    title: "合同サークルイベント",
+    snippet: "関東エリアの大学横断でボランティア企画を共催。",
     matchRate: 87,
   },
   {
-    id: 'm3',
-    title: '留学経験シェア',
-    snippet: '交換留学経験者と出発前の学生をペアリング。',
+    id: "m3",
+    title: "留学経験シェア",
+    snippet: "交換留学経験者と出発前の学生をペアリング。",
     matchRate: 79,
   },
 ];
@@ -39,33 +39,46 @@ export default function HomeScreen() {
   const router = useRouter();
   const { openapi } = useApiClient();
   const [selectedTargets, setSelectedTargets] = useState<string[]>([]);
-  const [intent, setIntent] = useState('');
+  const [intent, setIntent] = useState("");
   const [isVerifiedOnly, setIsVerifiedOnly] = useState(true);
   const [enableSmartRotation, setEnableSmartRotation] = useState(true);
-  const [presetKey, setPresetKey] = useState('');
+  const [presetKey, setPresetKey] = useState("");
   const hasAppliedDefaults = useRef(false);
 
-  const campusQuery = openapi.useQuery('get', '/catalog/universities', {});
-  const configurationQuery = openapi.useQuery('get', '/catalog/configuration', {});
+  const campusQuery = openapi.useQuery("get", "/catalog/universities", {});
+  const configurationQuery = openapi.useQuery(
+    "get",
+    "/catalog/configuration",
+    {},
+  );
 
   const campusCatalog: CampusRecord[] = (campusQuery.data?.results ?? []).map(
-    ({ country: _country, website: _website, ...rest }) => rest
+    ({ country: _country, website: _website, ...rest }) => rest,
   );
-  const intentOptions: IntentOption[] = configurationQuery.data?.intents ?? [];
-  const weightPresets: WeightPreset[] = configurationQuery.data?.weightPresets ?? [];
-  const verificationOptions = (configurationQuery.data?.verificationFlags ?? []).map((flag) => flag.label);
+  const intentOptions: IntentOption[] = useMemo(
+    () => configurationQuery.data?.intents ?? [],
+    [configurationQuery.data?.intents],
+  );
+  const weightPresets: WeightPreset[] = useMemo(
+    () => configurationQuery.data?.weightPresets ?? [],
+    [configurationQuery.data?.weightPresets],
+  );
+  const verificationOptions = (
+    configurationQuery.data?.verificationFlags ?? []
+  ).map((flag) => flag.label);
   const isLoading = campusQuery.isLoading || configurationQuery.isLoading;
   const error =
     campusQuery.error || configurationQuery.error
-      ? '設定データの取得に失敗しました。再読み込みしてください。'
+      ? "設定データの取得に失敗しました。再読み込みしてください。"
       : null;
 
   const activePreset = useMemo(() => {
     return (
-      weightPresets.find((preset) => preset.id === presetKey) || weightPresets[0] || {
-        id: 'default',
-        title: '重み付け未設定',
-        note: '設定データの取得をお待ちください',
+      weightPresets.find((preset) => preset.id === presetKey) ||
+      weightPresets[0] || {
+        id: "default",
+        title: "重み付け未設定",
+        note: "設定データの取得をお待ちください",
         isActive: false,
         weights: { major: 0, campus: 0, activity: 0 },
       }
@@ -74,29 +87,50 @@ export default function HomeScreen() {
 
   useEffect(() => {
     if (hasAppliedDefaults.current) return;
-    if (!campusCatalog.length && !intentOptions.length && !weightPresets.length && !verificationOptions.length) {
+    if (
+      !campusCatalog.length &&
+      !intentOptions.length &&
+      !weightPresets.length &&
+      !verificationOptions.length
+    ) {
       return;
     }
 
-    setSelectedTargets((prev) => (prev.length > 0 ? prev : campusCatalog.slice(0, 2).map((campus) => campus.id)));
-    setIntent((prev) => (prev ? prev : intentOptions[0]?.id ?? ''));
-    setPresetKey((prev) => (prev ? prev : weightPresets[0]?.id ?? ''));
-    setIsVerifiedOnly(configurationQuery.data?.verificationFlags?.some((flag) => flag.required) ?? true);
+    setSelectedTargets((prev) =>
+      prev.length > 0
+        ? prev
+        : campusCatalog.slice(0, 2).map((campus) => campus.id),
+    );
+    setIntent((prev) => (prev ? prev : (intentOptions[0]?.id ?? "")));
+    setPresetKey((prev) => (prev ? prev : (weightPresets[0]?.id ?? "")));
+    setIsVerifiedOnly(
+      configurationQuery.data?.verificationFlags?.some(
+        (flag) => flag.required,
+      ) ?? true,
+    );
     hasAppliedDefaults.current = true;
-  }, [campusCatalog, intentOptions, weightPresets, verificationOptions, configurationQuery.data]);
+  }, [
+    campusCatalog,
+    intentOptions,
+    weightPresets,
+    verificationOptions,
+    configurationQuery.data,
+  ]);
 
   const toggleTarget = (id: string) => {
     setSelectedTargets((prev) =>
-      prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
+      prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id],
     );
   };
 
-  const theme = Colors[colorScheme ?? 'light'];
+  const theme = Colors[colorScheme ?? "light"];
 
   if (isLoading) {
     return (
       <ScrollView contentContainerStyle={styles.container}>
-        <ThemedView style={[styles.placeholderBox, { borderColor: theme.icon }]}>
+        <ThemedView
+          style={[styles.placeholderBox, { borderColor: theme.icon }]}
+        >
           <ThemedText>設定データを読み込んでいます...</ThemedText>
         </ThemedView>
       </ScrollView>
@@ -110,7 +144,8 @@ export default function HomeScreen() {
           style={[
             styles.errorBox,
             { borderColor: theme.tint, backgroundColor: `${theme.tint}10` },
-          ]}>
+          ]}
+        >
           <ThemedText type="subtitle" style={styles.errorTitle}>
             データ取得エラー
           </ThemedText>
@@ -120,8 +155,11 @@ export default function HomeScreen() {
               campusQuery.refetch();
               configurationQuery.refetch();
             }}
-            style={[styles.retryButton, { borderColor: theme.tint }]}>
-            <ThemedText style={[styles.retryLabel, { color: theme.tint }]}>再読み込み</ThemedText>
+            style={[styles.retryButton, { borderColor: theme.tint }]}
+          >
+            <ThemedText style={[styles.retryLabel, { color: theme.tint }]}>
+              再読み込み
+            </ThemedText>
           </Pressable>
         </ThemedView>
       ) : null}
@@ -154,13 +192,16 @@ export default function HomeScreen() {
               style={({ pressed }) => [
                 styles.campusCard,
                 {
-                  borderColor: selectedTargets.includes(campus.id) ? theme.tint : theme.icon,
+                  borderColor: selectedTargets.includes(campus.id)
+                    ? theme.tint
+                    : theme.icon,
                   backgroundColor: selectedTargets.includes(campus.id)
                     ? `${theme.tint}15`
-                    : 'transparent',
+                    : "transparent",
                   opacity: pressed ? 0.8 : 1,
                 },
-              ]}>
+              ]}
+            >
               <ThemedText type="subtitle" style={styles.cardTitle}>
                 {campus.name}
               </ThemedText>
@@ -170,7 +211,9 @@ export default function HomeScreen() {
                   <Badge key={tag} label={tag} themeColor={theme.icon} subtle />
                 ))}
               </View>
-              <ThemedText style={styles.cardPrograms}>主要プログラム: {campus.programs.join(', ')}</ThemedText>
+              <ThemedText style={styles.cardPrograms}>
+                主要プログラム: {campus.programs.join(", ")}
+              </ThemedText>
               <SelectionMarker selected={selectedTargets.includes(campus.id)} />
             </Pressable>
           ))}
@@ -190,24 +233,35 @@ export default function HomeScreen() {
                 styles.intentCard,
                 {
                   borderColor: intent === option.id ? theme.tint : theme.icon,
-                  backgroundColor: intent === option.id ? `${theme.tint}12` : 'transparent',
+                  backgroundColor:
+                    intent === option.id ? `${theme.tint}12` : "transparent",
                   opacity: pressed ? 0.9 : 1,
                 },
-              ]}>
+              ]}
+            >
               <ThemedText type="subtitle" style={styles.intentTitle}>
                 {option.label}
               </ThemedText>
-              <ThemedText style={styles.intentDescription}>{option.description}</ThemedText>
+              <ThemedText style={styles.intentDescription}>
+                {option.description}
+              </ThemedText>
             </Pressable>
           ))}
         </View>
         <View style={styles.switchRow}>
           <Switch value={isVerifiedOnly} onValueChange={setIsVerifiedOnly} />
-          <ThemedText style={styles.switchLabel}>本人確認済みユーザーのみ許可</ThemedText>
+          <ThemedText style={styles.switchLabel}>
+            本人確認済みユーザーのみ許可
+          </ThemedText>
         </View>
         <View style={styles.switchRow}>
-          <Switch value={enableSmartRotation} onValueChange={setEnableSmartRotation} />
-          <ThemedText style={styles.switchLabel}>マッチ候補のスマートローテーション</ThemedText>
+          <Switch
+            value={enableSmartRotation}
+            onValueChange={setEnableSmartRotation}
+          />
+          <ThemedText style={styles.switchLabel}>
+            マッチ候補のスマートローテーション
+          </ThemedText>
         </View>
       </Section>
 
@@ -223,19 +277,34 @@ export default function HomeScreen() {
               style={({ pressed }) => [
                 styles.weightCard,
                 {
-                  borderColor: presetKey === preset.id ? theme.tint : theme.icon,
-                  backgroundColor: presetKey === preset.id ? `${theme.tint}10` : 'transparent',
+                  borderColor:
+                    presetKey === preset.id ? theme.tint : theme.icon,
+                  backgroundColor:
+                    presetKey === preset.id ? `${theme.tint}10` : "transparent",
                   opacity: pressed ? 0.9 : 1,
                 },
-              ]}>
+              ]}
+            >
               <ThemedText type="subtitle" style={styles.cardTitle}>
                 {preset.title}
               </ThemedText>
               <ThemedText style={styles.cardMeta}>{preset.note}</ThemedText>
               <View style={styles.weightChips}>
-                <WeightChip label="専攻" value={preset.weights.major} themeColor={theme.tint} />
-                <WeightChip label="エリア" value={preset.weights.campus} themeColor={theme.tint} />
-                <WeightChip label="活動" value={preset.weights.activity} themeColor={theme.tint} />
+                <WeightChip
+                  label="専攻"
+                  value={preset.weights.major}
+                  themeColor={theme.tint}
+                />
+                <WeightChip
+                  label="エリア"
+                  value={preset.weights.campus}
+                  themeColor={theme.tint}
+                />
+                <WeightChip
+                  label="活動"
+                  value={preset.weights.activity}
+                  themeColor={theme.tint}
+                />
               </View>
             </Pressable>
           ))}
@@ -245,17 +314,27 @@ export default function HomeScreen() {
             現在のロジック概要
           </ThemedText>
           <ThemedText>
-            ・ターゲット大学: {selectedTargets.length}校 / 意図: {intentOptions.find((opt) => opt.id === intent)?.label}
+            ・ターゲット大学: {selectedTargets.length}校 / 意図:{" "}
+            {intentOptions.find((opt) => opt.id === intent)?.label}
           </ThemedText>
           <ThemedText>
-            ・本人確認: {isVerifiedOnly ? '必須 (大学メール + 学籍証明)' : '任意 (手動チェック)'}
+            ・本人確認:{" "}
+            {isVerifiedOnly
+              ? "必須 (大学メール + 学籍証明)"
+              : "任意 (手動チェック)"}
           </ThemedText>
           <ThemedText>
-            ・ローテーション: {enableSmartRotation ? '人気大学の集中を緩和して分散表示' : '新着順で表示'}
+            ・ローテーション:{" "}
+            {enableSmartRotation
+              ? "人気大学の集中を緩和して分散表示"
+              : "新着順で表示"}
           </ThemedText>
           <ThemedText>
-            ・重み付け: 専攻 {Math.round(activePreset.weights.major * 100)}% / エリア
-            {` ${Math.round(activePreset.weights.campus * 100)}% / 活動 ${Math.round(activePreset.weights.activity * 100)}%`}
+            ・重み付け: 専攻 {Math.round(activePreset.weights.major * 100)}% /
+            エリア
+            {` ${Math.round(
+              activePreset.weights.campus * 100,
+            )}% / 活動 ${Math.round(activePreset.weights.activity * 100)}%`}
           </ThemedText>
         </ThemedView>
       </Section>
@@ -266,11 +345,16 @@ export default function HomeScreen() {
         </ThemedText>
         <View style={styles.actionGrid}>
           <Pressable
-            onPress={() => router.push('/matches')}
+            onPress={() => router.push("/matches")}
             style={({ pressed }) => [
               styles.actionCard,
-              { backgroundColor: `${theme.tint}12`, borderColor: theme.tint, opacity: pressed ? 0.85 : 1 },
-            ]}>
+              {
+                backgroundColor: `${theme.tint}12`,
+                borderColor: theme.tint,
+                opacity: pressed ? 0.85 : 1,
+              },
+            ]}
+          >
             <ThemedText type="subtitle" style={styles.cardTitle}>
               マッチ結果を確認
             </ThemedText>
@@ -280,11 +364,16 @@ export default function HomeScreen() {
           </Pressable>
 
           <Pressable
-            onPress={() => router.push('/verify/email-otp')}
+            onPress={() => router.push("/verify/email-otp")}
             style={({ pressed }) => [
               styles.actionCard,
-              { backgroundColor: `${theme.icon}10`, borderColor: theme.icon, opacity: pressed ? 0.85 : 1 },
-            ]}>
+              {
+                backgroundColor: `${theme.icon}10`,
+                borderColor: theme.icon,
+                opacity: pressed ? 0.85 : 1,
+              },
+            ]}
+          >
             <ThemedText type="subtitle" style={styles.cardTitle}>
               大学メールを認証
             </ThemedText>
@@ -294,11 +383,16 @@ export default function HomeScreen() {
           </Pressable>
 
           <Pressable
-            onPress={() => router.push('/admin/weights')}
+            onPress={() => router.push("/admin/weights")}
             style={({ pressed }) => [
               styles.actionCard,
-              { backgroundColor: 'transparent', borderColor: `${theme.icon}60`, opacity: pressed ? 0.85 : 1 },
-            ]}>
+              {
+                backgroundColor: "transparent",
+                borderColor: `${theme.icon}60`,
+                opacity: pressed ? 0.85 : 1,
+              },
+            ]}
+          >
             <ThemedText type="subtitle" style={styles.cardTitle}>
               重み付けプリセットを調整
             </ThemedText>
@@ -320,13 +414,28 @@ export default function HomeScreen() {
                 <ThemedText type="subtitle" style={styles.cardTitle}>
                   {idea.title}
                 </ThemedText>
-                <Badge label={`適合度 ${idea.matchRate}%`} themeColor={theme.tint} />
+                <Badge
+                  label={`適合度 ${idea.matchRate}%`}
+                  themeColor={theme.tint}
+                />
               </View>
-              <ThemedText style={styles.matchSnippet}>{idea.snippet}</ThemedText>
+              <ThemedText style={styles.matchSnippet}>
+                {idea.snippet}
+              </ThemedText>
               <View style={styles.matchMetaRow}>
                 <Badge label="本人確認済" themeColor={theme.icon} subtle />
-                <Badge label={intentOptions.find((opt) => opt.id === intent)?.label ?? ''} themeColor={theme.icon} subtle />
-                <Badge label={`対象 ${selectedTargets.length}校`} themeColor={theme.icon} subtle />
+                <Badge
+                  label={
+                    intentOptions.find((opt) => opt.id === intent)?.label ?? ""
+                  }
+                  themeColor={theme.icon}
+                  subtle
+                />
+                <Badge
+                  label={`対象 ${selectedTargets.length}校`}
+                  themeColor={theme.icon}
+                  subtle
+                />
               </View>
             </ThemedView>
           ))}
@@ -347,7 +456,9 @@ export default function HomeScreen() {
           <View style={styles.verificationHint}>
             <ThemedText style={styles.hintTitle}>不正防止</ThemedText>
             <ThemedText>
-              ・学籍証明のアップロードはOCRで自動判定。疑義は手動レビューへ。{'\n'}・マッチ後のチャットは不審ワードを検知し、運営にアラートを送信。
+              ・学籍証明のアップロードはOCRで自動判定。疑義は手動レビューへ。
+              {"\n"}
+              ・マッチ後のチャットは不審ワードを検知し、運営にアラートを送信。
             </ThemedText>
           </View>
         </ThemedView>
@@ -356,7 +467,13 @@ export default function HomeScreen() {
   );
 }
 
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
+function Section({
+  title,
+  children,
+}: {
+  title: string;
+  children: React.ReactNode;
+}) {
   return (
     <ThemedView style={styles.section}>
       <ThemedText type="title" style={styles.sectionTitle}>
@@ -367,34 +484,67 @@ function Section({ title, children }: { title: string; children: React.ReactNode
   );
 }
 
-function Badge({ label, themeColor, subtle }: { label: string; themeColor: string; subtle?: boolean }) {
+function Badge({
+  label,
+  themeColor,
+  subtle,
+}: {
+  label: string;
+  themeColor: string;
+  subtle?: boolean;
+}) {
   return (
     <View
       style={[
         styles.badge,
         {
-          backgroundColor: subtle ? 'transparent' : `${themeColor}1A`,
+          backgroundColor: subtle ? "transparent" : `${themeColor}1A`,
           borderColor: `${themeColor}60`,
         },
-      ]}>
+      ]}
+    >
       <ThemedText style={styles.badgeText}>{label}</ThemedText>
     </View>
   );
 }
 
-function WeightChip({ label, value, themeColor }: { label: string; value: number; themeColor: string }) {
+function WeightChip({
+  label,
+  value,
+  themeColor,
+}: {
+  label: string;
+  value: number;
+  themeColor: string;
+}) {
   return (
-    <View style={[styles.weightChip, { backgroundColor: `${themeColor}15`, borderColor: `${themeColor}50` }]}>
+    <View
+      style={[
+        styles.weightChip,
+        { backgroundColor: `${themeColor}15`, borderColor: `${themeColor}50` },
+      ]}
+    >
       <ThemedText style={styles.weightChipLabel}>{label}</ThemedText>
-      <ThemedText style={styles.weightChipValue}>{Math.round(value * 100)}%</ThemedText>
+      <ThemedText style={styles.weightChipValue}>
+        {Math.round(value * 100)}%
+      </ThemedText>
     </View>
   );
 }
 
 function SelectionMarker({ selected }: { selected: boolean }) {
   return (
-    <View style={[styles.selectionMarker, selected ? styles.selectionMarkerActive : null]}>
-      {selected ? <ThemedText style={styles.selectionMarkerText}>選択中</ThemedText> : <ThemedText>選択</ThemedText>}
+    <View
+      style={[
+        styles.selectionMarker,
+        selected ? styles.selectionMarkerActive : null,
+      ]}
+    >
+      {selected ? (
+        <ThemedText style={styles.selectionMarkerText}>選択中</ThemedText>
+      ) : (
+        <ThemedText>選択</ThemedText>
+      )}
     </View>
   );
 }
@@ -408,7 +558,7 @@ const styles = StyleSheet.create({
     padding: 16,
     borderRadius: 12,
     borderWidth: 1,
-    alignItems: 'center',
+    alignItems: "center",
   },
   errorBox: {
     padding: 14,
@@ -420,14 +570,14 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.rounded,
   },
   retryButton: {
-    alignSelf: 'flex-start',
+    alignSelf: "flex-start",
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderWidth: 1,
     borderRadius: 10,
   },
   retryLabel: {
-    fontWeight: '600',
+    fontWeight: "600",
   },
   hero: {
     padding: 18,
@@ -446,8 +596,8 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
   heroBadges: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
+    flexDirection: "row",
+    flexWrap: "wrap",
     gap: 8,
   },
   section: {
@@ -476,12 +626,12 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
   cardGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
+    flexDirection: "row",
+    flexWrap: "wrap",
     gap: 12,
   },
   campusCard: {
-    flexBasis: '48%',
+    flexBasis: "48%",
     borderWidth: 1,
     borderRadius: 14,
     padding: 12,
@@ -499,9 +649,9 @@ const styles = StyleSheet.create({
     lineHeight: 16,
   },
   tagRow: {
-    flexDirection: 'row',
+    flexDirection: "row",
     gap: 6,
-    flexWrap: 'wrap',
+    flexWrap: "wrap",
   },
   badge: {
     paddingHorizontal: 10,
@@ -513,12 +663,12 @@ const styles = StyleSheet.create({
     fontSize: 12,
   },
   intentRow: {
-    flexDirection: 'row',
+    flexDirection: "row",
     gap: 10,
-    flexWrap: 'wrap',
+    flexWrap: "wrap",
   },
   intentCard: {
-    flexBasis: '48%',
+    flexBasis: "48%",
     borderWidth: 1,
     borderRadius: 12,
     padding: 12,
@@ -533,8 +683,8 @@ const styles = StyleSheet.create({
     lineHeight: 16,
   },
   switchRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 10,
   },
   switchLabel: {
@@ -542,25 +692,25 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
   weightRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
+    flexDirection: "row",
+    flexWrap: "wrap",
     gap: 10,
   },
   weightCard: {
-    flexBasis: '48%',
+    flexBasis: "48%",
     borderWidth: 1,
     borderRadius: 12,
     padding: 12,
     gap: 8,
   },
   weightChips: {
-    flexDirection: 'row',
+    flexDirection: "row",
     gap: 8,
-    flexWrap: 'wrap',
+    flexWrap: "wrap",
   },
   weightChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 6,
     paddingHorizontal: 10,
     paddingVertical: 6,
@@ -593,17 +743,17 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   matchHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
   },
   matchSnippet: {
     lineHeight: 18,
   },
   matchMetaRow: {
-    flexDirection: 'row',
+    flexDirection: "row",
     gap: 6,
-    flexWrap: 'wrap',
+    flexWrap: "wrap",
   },
   verificationBox: {
     gap: 10,
@@ -612,8 +762,8 @@ const styles = StyleSheet.create({
     borderRadius: 12,
   },
   verificationItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 8,
   },
   bullet: {
@@ -633,15 +783,15 @@ const styles = StyleSheet.create({
   },
   selectionMarker: {
     marginTop: 6,
-    alignSelf: 'flex-start',
+    alignSelf: "flex-start",
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 999,
     borderWidth: 1,
   },
   selectionMarkerActive: {
-    backgroundColor: '#0a7ea415',
-    borderColor: '#0a7ea4',
+    backgroundColor: "#0a7ea415",
+    borderColor: "#0a7ea4",
   },
   selectionMarkerText: {
     fontSize: 12,

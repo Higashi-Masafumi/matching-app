@@ -4,382 +4,382 @@
  */
 
 export interface paths {
-    "/catalog/universities": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * List university catalog
-         * @description Retrieve universities available for matching.
-         */
-        get: {
-            parameters: {
-                query?: {
-                    /** @description Free text search */
-                    search?: string;
-                    /** @description Filter by program name */
-                    program?: string;
-                    /** @description Filter by country code */
-                    country?: string;
-                    /** @description Maximum results to return */
-                    limit?: number;
-                };
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description Catalog entries matching the filters */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["UniversityCatalogResponse"];
-                    };
-                };
-            };
-        };
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
+  "/catalog/universities": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    "/catalog/configuration": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
+    /**
+     * List university catalog
+     * @description Retrieve universities available for matching.
+     */
+    get: {
+      parameters: {
+        query?: {
+          /** @description Free text search */
+          search?: string;
+          /** @description Filter by program name */
+          program?: string;
+          /** @description Filter by country code */
+          country?: string;
+          /** @description Maximum results to return */
+          limit?: number;
         };
-        /**
-         * Catalog configuration
-         * @description UI metadata for catalog filters and weighting presets.
-         */
-        get: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description Available filters and presets */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            intents: {
-                                /** @example same */
-                                id: string;
-                                /** @example 同じ大学でマッチ */
-                                label: string;
-                                description: string;
-                                radiusKm?: number | null;
-                            }[];
-                            weightPresets: {
-                                id: string;
-                                title: string;
-                                weights: {
-                                    major: number;
-                                    campus: number;
-                                    activity: number;
-                                };
-                                note: string;
-                                isActive: boolean;
-                            }[];
-                            verificationFlags: {
-                                id: string;
-                                label: string;
-                                description: string;
-                                required: boolean;
-                            }[];
-                        };
-                    };
-                };
-            };
+        header?: never;
+        path?: never;
+        cookie?: never;
+      };
+      requestBody?: never;
+      responses: {
+        /** @description Catalog entries matching the filters */
+        200: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["UniversityCatalogResponse"];
+          };
         };
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
+      };
     };
-    "/matches/candidates": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Fetch recommended match candidates for the authenticated user
-         * @description Returns a ranked list of candidates using the current profile context.
-         */
-        get: {
-            parameters: {
-                query?: {
-                    /** @description Number of candidates to retrieve */
-                    limit?: number;
-                    /** @description Pagination offset */
-                    offset?: number | null;
-                };
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description Candidate matches returned successfully */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["MatchCandidatesResponse"];
-                    };
-                };
-                /** @description Missing or invalid email OTP authentication */
-                401: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content?: never;
-                };
-            };
-        };
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/catalog/configuration": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    "/profile": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
+    /**
+     * Catalog configuration
+     * @description UI metadata for catalog filters and weighting presets.
+     */
+    get: {
+      parameters: {
+        query?: never;
+        header?: never;
+        path?: never;
+        cookie?: never;
+      };
+      requestBody?: never;
+      responses: {
+        /** @description Available filters and presets */
+        200: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": {
+              intents: {
+                /** @example same */
+                id: string;
+                /** @example 同じ大学でマッチ */
+                label: string;
+                description: string;
+                radiusKm?: number | null;
+              }[];
+              weightPresets: {
+                id: string;
+                title: string;
+                weights: {
+                  major: number;
+                  campus: number;
+                  activity: number;
+                };
+                note: string;
+                isActive: boolean;
+              }[];
+              verificationFlags: {
+                id: string;
+                label: string;
+                description: string;
+                required: boolean;
+              }[];
+            };
+          };
         };
-        get?: never;
-        /**
-         * Update the current user profile
-         * @description Persists profile fields to improve match quality.
-         */
-        put: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody: {
-                content: {
-                    "application/json": components["schemas"]["ProfileUpdateRequest"];
-                };
-            };
-            responses: {
-                /** @description Updated profile data */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["Profile"];
-                    };
-                };
-                /** @description Student ID verification token is missing or invalid */
-                401: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content?: never;
-                };
-            };
-        };
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
+      };
     };
-    "/openapi": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * OpenAPI document redirect
-         * @description Redirects to the OpenAPI JSON document.
-         */
-        get: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description Redirect to the OpenAPI document */
-                302: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content?: never;
-                };
-            };
-        };
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/matches/candidates": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
+    /**
+     * Fetch recommended match candidates for the authenticated user
+     * @description Returns a ranked list of candidates using the current profile context.
+     */
+    get: {
+      parameters: {
+        query?: {
+          /** @description Number of candidates to retrieve */
+          limit?: number;
+          /** @description Pagination offset */
+          offset?: number | null;
+        };
+        header?: never;
+        path?: never;
+        cookie?: never;
+      };
+      requestBody?: never;
+      responses: {
+        /** @description Candidate matches returned successfully */
+        200: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["MatchCandidatesResponse"];
+          };
+        };
+        /** @description Missing or invalid email OTP authentication */
+        401: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content?: never;
+        };
+      };
+    };
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/profile": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    /**
+     * Update the current user profile
+     * @description Persists profile fields to improve match quality.
+     */
+    put: {
+      parameters: {
+        query?: never;
+        header?: never;
+        path?: never;
+        cookie?: never;
+      };
+      requestBody: {
+        content: {
+          "application/json": components["schemas"]["ProfileUpdateRequest"];
+        };
+      };
+      responses: {
+        /** @description Updated profile data */
+        200: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["Profile"];
+          };
+        };
+        /** @description Student ID verification token is missing or invalid */
+        401: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content?: never;
+        };
+      };
+    };
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/openapi": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * OpenAPI document redirect
+     * @description Redirects to the OpenAPI JSON document.
+     */
+    get: {
+      parameters: {
+        query?: never;
+        header?: never;
+        path?: never;
+        cookie?: never;
+      };
+      requestBody?: never;
+      responses: {
+        /** @description Redirect to the OpenAPI document */
+        302: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content?: never;
+        };
+      };
+    };
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
 }
 export type webhooks = Record<string, never>;
 export interface components {
-    schemas: {
-        University: {
-            /** @example uni_1234 */
-            id: string;
-            /** @example Example University */
-            name: string;
-            /** @example Tokyo */
-            city: string;
-            /** @example 関東 */
-            region: string;
-            /** @example JP */
-            country: string;
-            /**
-             * @example [
-             *       "国立",
-             *       "総合"
-             *     ]
-             */
-            tags: string[];
-            /**
-             * @example [
-             *       "Computer Science",
-             *       "Economics"
-             *     ]
-             */
-            programs: string[];
-            /**
-             * @example strict
-             * @enum {string}
-             */
-            verificationLevel: "basic" | "strict";
-            /**
-             * Format: uri
-             * @example https://www.exampleuniversity.jp
-             */
-            website?: string;
-        };
-        UniversityCatalogResponse: {
-            /** @example 128 */
-            total: number;
-            results: components["schemas"]["University"][];
-        };
-        MatchCandidate: {
-            /** @example candidate_987 */
-            id: string;
-            /** @example Hiro Tanaka */
-            name: string;
-            /** @example uni_1234 */
-            universityId: string;
-            /**
-             * @description Compatibility between 0 and 1
-             * @example 0.82
-             */
-            matchScore: number;
-            /**
-             * @example [
-             *       "Machine Learning",
-             *       "Language Exchange"
-             *     ]
-             */
-            sharedInterests: string[];
-            /** @example Interested in study abroad research projects. */
-            introduction?: string;
-        };
-        MatchCandidatesResponse: {
-            results: components["schemas"]["MatchCandidate"][];
-            /** @example 10 */
-            nextOffset: number | null;
-        };
-        Profile: {
-            /** @example user_456 */
-            id: string;
-            /** @example Mika Sato */
-            name: string;
-            /** @example uni_1234 */
-            universityId: string;
-            /**
-             * @example [
-             *       "Economics",
-             *       "Data Science"
-             *     ]
-             */
-            majors: string[];
-            /**
-             * @example [
-             *       "AI ethics",
-             *       "Music"
-             *     ]
-             */
-            interests: string[];
-            /**
-             * @example [
-             *       "ja",
-             *       "en"
-             *     ]
-             */
-            languages: string[];
-            /** @example Looking for research exchange opportunities. */
-            bio?: string;
-            /**
-             * @example [
-             *       "Tokyo",
-             *       "Osaka"
-             *     ]
-             */
-            preferredLocations: string[];
-        };
-        /** @description Editable fields for the user profile */
-        ProfileUpdateRequest: {
-            name?: string;
-            majors?: string[];
-            interests?: string[];
-            languages?: string[];
-            bio?: string;
-            preferredLocations?: string[];
-        };
+  schemas: {
+    University: {
+      /** @example uni_1234 */
+      id: string;
+      /** @example Example University */
+      name: string;
+      /** @example Tokyo */
+      city: string;
+      /** @example 関東 */
+      region: string;
+      /** @example JP */
+      country: string;
+      /**
+       * @example [
+       *       "国立",
+       *       "総合"
+       *     ]
+       */
+      tags: string[];
+      /**
+       * @example [
+       *       "Computer Science",
+       *       "Economics"
+       *     ]
+       */
+      programs: string[];
+      /**
+       * @example strict
+       * @enum {string}
+       */
+      verificationLevel: "basic" | "strict";
+      /**
+       * Format: uri
+       * @example https://www.exampleuniversity.jp
+       */
+      website?: string;
     };
-    responses: never;
-    parameters: never;
-    requestBodies: never;
-    headers: never;
-    pathItems: never;
+    UniversityCatalogResponse: {
+      /** @example 128 */
+      total: number;
+      results: components["schemas"]["University"][];
+    };
+    MatchCandidate: {
+      /** @example candidate_987 */
+      id: string;
+      /** @example Hiro Tanaka */
+      name: string;
+      /** @example uni_1234 */
+      universityId: string;
+      /**
+       * @description Compatibility between 0 and 1
+       * @example 0.82
+       */
+      matchScore: number;
+      /**
+       * @example [
+       *       "Machine Learning",
+       *       "Language Exchange"
+       *     ]
+       */
+      sharedInterests: string[];
+      /** @example Interested in study abroad research projects. */
+      introduction?: string;
+    };
+    MatchCandidatesResponse: {
+      results: components["schemas"]["MatchCandidate"][];
+      /** @example 10 */
+      nextOffset: number | null;
+    };
+    Profile: {
+      /** @example user_456 */
+      id: string;
+      /** @example Mika Sato */
+      name: string;
+      /** @example uni_1234 */
+      universityId: string;
+      /**
+       * @example [
+       *       "Economics",
+       *       "Data Science"
+       *     ]
+       */
+      majors: string[];
+      /**
+       * @example [
+       *       "AI ethics",
+       *       "Music"
+       *     ]
+       */
+      interests: string[];
+      /**
+       * @example [
+       *       "ja",
+       *       "en"
+       *     ]
+       */
+      languages: string[];
+      /** @example Looking for research exchange opportunities. */
+      bio?: string;
+      /**
+       * @example [
+       *       "Tokyo",
+       *       "Osaka"
+       *     ]
+       */
+      preferredLocations: string[];
+    };
+    /** @description Editable fields for the user profile */
+    ProfileUpdateRequest: {
+      name?: string;
+      majors?: string[];
+      interests?: string[];
+      languages?: string[];
+      bio?: string;
+      preferredLocations?: string[];
+    };
+  };
+  responses: never;
+  parameters: never;
+  requestBodies: never;
+  headers: never;
+  pathItems: never;
 }
 export type $defs = Record<string, never>;
 export type operations = Record<string, never>;
