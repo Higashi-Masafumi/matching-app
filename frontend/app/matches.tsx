@@ -49,7 +49,10 @@ export default function MatchesScreen() {
   const campusCatalog: CampusRecord[] = (campusQuery.data?.results ?? []).map(
     ({ country: _country, website: _website, ...rest }) => rest,
   );
-  const intentOptions: IntentOption[] = configurationQuery.data?.intents ?? [];
+  const intentOptions: IntentOption[] = useMemo(
+    () => configurationQuery.data?.intents ?? [],
+    [configurationQuery.data?.intents],
+  );
   const isLoading = campusQuery.isLoading || configurationQuery.isLoading;
   const error =
     campusQuery.error || configurationQuery.error
